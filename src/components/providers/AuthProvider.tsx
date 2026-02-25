@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Profile, UserRole } from "@/lib/types";
 import { User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 interface AuthContextType {
     user: User | null;
@@ -95,8 +96,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
-        window.location.href = "/login";
+        try {
+            toast.loading("Saindo do sistema...", { id: "signout" });
+            await supabase.auth.signOut();
+            toast.success("Até logo!", { id: "signout" });
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Logout error:", error);
+            toast.error("Erro ao sair", { id: "signout" });
+        }
     };
 
     return (

@@ -126,33 +126,50 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
             {/* Mobile Drawer */}
             <aside className={cn(
-                "fixed inset-y-0 left-0 z-50 w-64 transform bg-card/95 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:hidden",
+                "fixed inset-y-0 left-0 z-50 w-64 transform bg-card/95 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:hidden flex flex-col shadow-2xl border-r border-white/10",
                 isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             )}>
-                <div className="flex h-16 items-center justify-center border-b border-border">
-                    <span className="text-xl font-bold text-primary">Menu</span>
+                <div className="flex h-16 items-center justify-between px-6 border-b border-border">
+                    <span className="text-xl font-bold text-primary">Menu de Acesso</span>
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-muted-foreground">
+                        <X className="h-6 w-6" />
+                    </button>
                 </div>
-                <nav className="flex flex-col gap-1 p-4">
-                    {navigation.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                                    isActive
-                                        ? "bg-primary text-white"
-                                        : "text-muted-foreground hover:bg-white/5"
-                                )}
-                            >
-                                <item.icon className="h-4 w-4" />
-                                {item.name}
-                            </Link>
-                        );
-                    })}
-                </nav>
+                <div className="flex-1 overflow-y-auto">
+                    <nav className="flex flex-col gap-1 p-4">
+                        {filteredNavigation.map((item) => {
+                            const isActive = pathname === item.href;
+                            return (
+                                <Link
+                                    key={item.name}
+                                    href={item.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={cn(
+                                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                                        isActive
+                                            ? "bg-primary text-white"
+                                            : "text-muted-foreground hover:bg-white/5"
+                                    )}
+                                >
+                                    <item.icon className="h-4 w-4" />
+                                    {item.name}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+                </div>
+                <div className="p-4 border-t border-white/5">
+                    <button
+                        onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            signOut();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all border border-destructive/10"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Sair do Sistema
+                    </button>
+                </div>
             </aside>
 
             {/* Main Content */}
