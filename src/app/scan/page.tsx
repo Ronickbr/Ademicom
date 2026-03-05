@@ -38,16 +38,27 @@ export default function ScanPage() {
 
     // Photos State
     const [labelPhoto, setLabelPhoto] = useState<string | null>(null);
-    const [ocrForm, setOcrForm] = useState({
+    const [ocrForm, setOcrForm] = useState<any>({
         brand: "",
         model: "",
         original_serial: "",
         commercial_code: "",
         color: "",
+        product_type: "",
         pnc_ml: "",
         manufacturing_date: "",
+        market_class: "",
         refrigerant_gas: "",
+        gas_charge: "",
+        compressor: "",
+        volume_freezer: "",
+        volume_refrigerator: "",
         volume_total: "",
+        pressure_high_low: "",
+        freezing_capacity: "",
+        electric_current: "",
+        defrost_power: "",
+        frequency: "",
         voltage: "",
     });
 
@@ -100,10 +111,21 @@ export default function ScanPage() {
                 original_serial: data.numero_serie || "",
                 commercial_code: data.codigo_comercial || "",
                 color: data.cor || "",
+                product_type: data.tipo || "",
                 pnc_ml: data.pnc_ml || "",
                 manufacturing_date: data.data_fabricacao || "",
+                market_class: data.classe_mercado || "",
                 refrigerant_gas: data.gas_refrigerante || "",
+                gas_charge: data.carga_gas || "",
+                compressor: data.compressor || "",
+                volume_freezer: data.volume_freezer || "",
+                volume_refrigerator: data.volume_refrigerator || "",
                 volume_total: data.volume_total || "",
+                pressure_high_low: data.pressao_alta_baixa || "",
+                freezing_capacity: data.capacidade_congelamento || "",
+                electric_current: data.corrente_eletrica || "",
+                defrost_power: data.potencia_degelo || "",
+                frequency: data.frequencia || "",
                 voltage: data.tensao || "",
             });
             setShowOcrModal(true);
@@ -131,10 +153,21 @@ export default function ScanPage() {
                         original_serial: data.numero_serie || "",
                         commercial_code: data.codigo_comercial || "",
                         color: data.cor || "",
+                        product_type: data.tipo || "",
                         pnc_ml: data.pnc_ml || "",
                         manufacturing_date: data.data_fabricacao || "",
+                        market_class: data.classe_mercado || "",
                         refrigerant_gas: data.gas_refrigerante || "",
+                        gas_charge: data.carga_gas || "",
+                        compressor: data.compressor || "",
+                        volume_freezer: data.volume_freezer || "",
+                        volume_refrigerator: data.volume_refrigerator || "",
                         volume_total: data.volume_total || "",
+                        pressure_high_low: data.pressao_alta_baixa || "",
+                        freezing_capacity: data.capacidade_congelamento || "",
+                        electric_current: data.corrente_eletrica || "",
+                        defrost_power: data.potencia_degelo || "",
+                        frequency: data.frequencia || "",
                         voltage: data.tensao || "",
                     });
                     setShowOcrModal(true);
@@ -342,105 +375,222 @@ export default function ScanPage() {
 
                         <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 bg-black/20">
                             {/* Form fields for review */}
-                            <div className="grid gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Fabricante / Marca</label>
-                                    <input
-                                        type="text"
-                                        value={ocrForm.brand}
-                                        onChange={e => setOcrForm({ ...ocrForm, brand: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Modelo</label>
-                                    <input
-                                        type="text"
-                                        value={ocrForm.model}
-                                        onChange={e => setOcrForm({ ...ocrForm, model: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Número de Série Original</label>
-                                    <input
-                                        type="text"
-                                        value={ocrForm.original_serial}
-                                        onChange={e => setOcrForm({ ...ocrForm, original_serial: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold font-mono uppercase"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Código Comercial</label>
-                                        <input
-                                            type="text"
-                                            value={ocrForm.commercial_code}
-                                            onChange={e => setOcrForm({ ...ocrForm, commercial_code: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Cor</label>
-                                        <input
-                                            type="text"
-                                            value={ocrForm.color}
-                                            onChange={e => setOcrForm({ ...ocrForm, color: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">PNC / ML</label>
-                                        <input
-                                            type="text"
-                                            value={ocrForm.pnc_ml}
-                                            onChange={e => setOcrForm({ ...ocrForm, pnc_ml: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Data Fabricação</label>
-                                        <input
-                                            type="text"
-                                            value={ocrForm.manufacturing_date}
-                                            onChange={e => setOcrForm({ ...ocrForm, manufacturing_date: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Tensão (Voltagem)</label>
-                                        <input
-                                            type="text"
-                                            value={ocrForm.voltage}
-                                            onChange={e => setOcrForm({ ...ocrForm, voltage: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Gás Refrigerante</label>
-                                        <input
-                                            type="text"
-                                            value={ocrForm.refrigerant_gas}
-                                            onChange={e => setOcrForm({ ...ocrForm, refrigerant_gas: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                        />
+                            <div className="space-y-6">
+                                {/* Seção Identificação */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-primary uppercase tracking-widest border-l-2 border-primary pl-2">Identificação</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5 col-span-2">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Fabricante / Marca</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.brand}
+                                                onChange={e => setOcrForm({ ...ocrForm, brand: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Modelo</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.model}
+                                                onChange={e => setOcrForm({ ...ocrForm, model: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">TIPO</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.product_type}
+                                                onChange={e => setOcrForm({ ...ocrForm, product_type: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 col-span-2">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Número de Série Original</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.original_serial}
+                                                onChange={e => setOcrForm({ ...ocrForm, original_serial: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold font-mono uppercase"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Código Comercial</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.commercial_code}
+                                                onChange={e => setOcrForm({ ...ocrForm, commercial_code: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Cor</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.color}
+                                                onChange={e => setOcrForm({ ...ocrForm, color: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">PNC / ML</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.pnc_ml}
+                                                onChange={e => setOcrForm({ ...ocrForm, pnc_ml: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Data Fabricação</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.manufacturing_date}
+                                                onChange={e => setOcrForm({ ...ocrForm, manufacturing_date: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Volume Total</label>
-                                    <input
-                                        type="text"
-                                        value={ocrForm.volume_total}
-                                        onChange={e => setOcrForm({ ...ocrForm, volume_total: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
-                                    />
+                                {/* Seção Performance & Fluidos */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest border-l-2 border-emerald-500 pl-2">Desempenho e Fluidos</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Gás Refrigerante</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.refrigerant_gas}
+                                                onChange={e => setOcrForm({ ...ocrForm, refrigerant_gas: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Carga de Gás</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.gas_charge}
+                                                onChange={e => setOcrForm({ ...ocrForm, gas_charge: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Compressor</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.compressor}
+                                                onChange={e => setOcrForm({ ...ocrForm, compressor: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Classe / Mercado</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.market_class}
+                                                onChange={e => setOcrForm({ ...ocrForm, market_class: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Cap. Congelamento</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.freezing_capacity}
+                                                onChange={e => setOcrForm({ ...ocrForm, freezing_capacity: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Pressões (H/L)</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.pressure_high_low}
+                                                onChange={e => setOcrForm({ ...ocrForm, pressure_high_low: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Seção Volumes */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-2">Capacidades e Volumes</h4>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black text-muted-foreground uppercase tracking-widest pl-1">Freezer</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.volume_freezer}
+                                                onChange={e => setOcrForm({ ...ocrForm, volume_freezer: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-primary/50 outline-none transition-all font-bold text-center"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black text-muted-foreground uppercase tracking-widest pl-1">Refrig.</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.volume_refrigerator}
+                                                onChange={e => setOcrForm({ ...ocrForm, volume_refrigerator: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-primary/50 outline-none transition-all font-bold text-center"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black text-muted-foreground uppercase tracking-widest pl-1">Total</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.volume_total}
+                                                onChange={e => setOcrForm({ ...ocrForm, volume_total: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-primary/50 outline-none transition-all font-bold text-center"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Seção Elétrica */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest border-l-2 border-amber-500 pl-2">Especificações Elétricas</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Tensão (Voltagem)</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.voltage}
+                                                onChange={e => setOcrForm({ ...ocrForm, voltage: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Frequência</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.frequency}
+                                                onChange={e => setOcrForm({ ...ocrForm, frequency: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Corrente Elétrica</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.electric_current}
+                                                onChange={e => setOcrForm({ ...ocrForm, electric_current: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Potência Degelo</label>
+                                            <input
+                                                type="text"
+                                                value={ocrForm.defrost_power}
+                                                onChange={e => setOcrForm({ ...ocrForm, defrost_power: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

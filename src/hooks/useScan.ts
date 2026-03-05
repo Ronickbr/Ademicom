@@ -102,7 +102,7 @@ export function useScan() {
               content: [
                 {
                   type: "text",
-                  text: "Analise esta etiqueta de produto (geralmente Electrolux) e extraia os dados técnicos. Retorne APENAS um objeto JSON com estes campos (use nulo se não encontrar): fabricante, modelo, codigo_comercial, cor, pnc_ml, numero_serie, data_fabricacao, gas_refrigerante, volume_total, tensao. Não escreva nada além do JSON."
+                  text: "Analise esta etiqueta de produto (geralmente Electrolux) e extraia os dados técnicos. Retorne APENAS um objeto JSON com estes campos (use nulo se não encontrar): fabricante, modelo, codigo_comercial, cor, pnc_ml, numero_serie, data_fabricacao, gas_refrigerante, volume_total, tensao, tipo, classe_mercado, carga_gas, compressor, volume_freezer, volume_refrigerator, pressao_alta_baixa, capacidade_congelamento, corrente_eletrica, potencia_degelo, frequencia. Não escreva nada além do JSON."
                 },
                 {
                   type: "image_url",
