@@ -237,7 +237,7 @@ export function useScan() {
           ...data,
           ...photoUrls,
           internal_serial: internalSerial,
-          status: 'EM AVALIAÇÃO',
+          status: 'CADASTRO',
           is_in_stock: true,
           created_by: (await supabase.auth.getUser()).data.user?.id
         })

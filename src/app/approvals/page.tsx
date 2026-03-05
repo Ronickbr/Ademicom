@@ -15,6 +15,7 @@ import {
     Loader2,
     ShieldCheck,
     FileSearch,
+    Printer,
     History as HistoryIcon
 } from "lucide-react";
 import { toast } from "sonner";
@@ -110,9 +111,22 @@ export default function ApprovalsPage() {
 
             if (logError) throw logError;
 
-            toast.success(action === "APPROVE" ? "Produto Aprovado!" : "Produto Rejeitado", {
-                description: action === "APPROVE" ? "Item liberado para o estoque." : "Retornado para o cadastro."
-            });
+            if (action === "APPROVE") {
+                toast.success("Produto Aprovado!", {
+                    description: "Item liberado para o estoque. Deseja imprimir a etiqueta?",
+                    action: {
+                        label: "Imprimir",
+                        onClick: () => {
+                            const product = products.find(p => p.id === productId);
+                            if (product) handlePrintLabel(product);
+                        }
+                    }
+                });
+            } else {
+                toast.error("Produto Rejeitado", {
+                    description: "Retornado para o cadastro."
+                });
+            }
 
             setProducts(prev => prev.filter(p => p.id !== productId));
             if (selectedProduct?.id === productId) setSelectedProduct(null);
@@ -122,6 +136,50 @@ export default function ApprovalsPage() {
         } finally {
             setIsProcessing(null);
         }
+    };
+
+    const handlePrintLabel = (product: Product) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Etiqueta Interna - ${product.internal_serial}</title>
+                    <style>
+                        @page { size: 100mm 60mm; margin: 0; }
+                        body { 
+                            font-family: 'Inter', sans-serif; 
+                            margin: 0; padding: 20px;
+                            display: flex; flex-direction: column;
+                            align-items: center; justify-content: center;
+                            text-align: center;
+                        }
+                        .serial { font-size: 24pt; font-weight: 900; margin-bottom: 5px; }
+                        .model { font-size: 14pt; margin-bottom: 10px; text-transform: uppercase; }
+                        .brand { font-size: 10pt; color: #666; font-weight: bold; }
+                        .barcode { font-family: 'Libre Barcode 39', cursive; font-size: 40pt; margin: 10px 0; }
+                        @font-face {
+                            font-family: 'Libre Barcode 39';
+                            src: url('https://fonts.googleapis.com/css2?family=Libre+Barcode+3 translation: 39&display=swap');
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="brand">AMBICOM INDUSTRIAL</div>
+                    <div class="serial">${product.internal_serial}</div>
+                    <div class="model">${product.model}</div>
+                    <div class="brand">${product.brand}</div>
+                    <script>
+                        window.onload = () => {
+                            window.print();
+                            window.onafterprint = () => window.close();
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
     };
 
     const filteredProducts = products.filter(p =>

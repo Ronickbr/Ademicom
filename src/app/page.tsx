@@ -30,20 +30,20 @@ interface DashboardStat {
   icon: React.ElementType;
   color: string;
   key: string;
-  trend: string;
+  trend?: string;
   label: string;
 }
 
 export default function Home() {
   const [stats, setStats] = useState<DashboardStat[]>([
-    { name: "Patrimônio Ativo", value: "0", icon: Package, color: "text-blue-500", key: "TOTAL", trend: "+12%", label: "Total Geral" },
-    { name: "Fila de Inspeção", value: "0", icon: Clock, color: "text-yellow-500", key: "CADASTRO", trend: "-5%", label: "Aguardando" },
-    { name: "Pendente Liberação", value: "0", icon: AlertCircle, color: "text-orange-500", key: "EM AVALIAÇÃO", trend: "+8%", label: "Em Análise" },
-    { name: "Stock Disponível", value: "0", icon: Box, color: "text-emerald-500", key: "EM ESTOQUE", trend: "+2.4%", label: "Pronto" },
+    { name: "Patrimônio Ativo", value: "0", icon: Package, color: "text-blue-500", key: "TOTAL", label: "Total Geral" },
+    { name: "Fila de Inspeção", value: "0", icon: Clock, color: "text-yellow-500", key: "CADASTRO", label: "Aguardando" },
+    { name: "Pendente Liberação", value: "0", icon: AlertCircle, color: "text-orange-500", key: "EM AVALIAÇÃO", label: "Em Análise" },
+    { name: "Stock Disponível", value: "0", icon: Box, color: "text-emerald-500", key: "EM ESTOQUE", label: "Pronto" },
   ]);
   const [recentActivity, setRecentActivity] = useState<DashboardLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [leadTime, setLeadTime] = useState({ avg: "4.2h", status: "Excelente" });
+  const [leadTime, setLeadTime] = useState({ avg: "--", status: "Aguardando Dados" });
 
   useEffect(() => {
     fetchDashboardData();
@@ -73,10 +73,10 @@ export default function Home() {
         const [total, cadastro, tecnico, liberado] = results;
 
         setStats([
-          { name: "Patrimônio Ativo", value: (total.count || 0).toString(), icon: Package, color: "text-blue-500", key: "TOTAL", trend: "+12%", label: "Total Geral" },
-          { name: "Fila de Inspeção", value: (cadastro.count || 0).toString(), icon: Clock, color: "text-yellow-500", key: "CADASTRO", trend: "-5%", label: "Aguardando" },
-          { name: "Pendente Liberação", value: (tecnico.count || 0).toString(), icon: AlertCircle, color: "text-orange-500", key: "TECNICO", trend: "+8%", label: "Em Análise" },
-          { name: "Total Expedido", value: (liberado.count || 0).toString(), icon: CheckCircle2, color: "text-emerald-500", key: "LIBERADO", trend: "+24%", label: "Concluídos" },
+          { name: "Patrimônio Ativo", value: (total.count || 0).toString(), icon: Package, color: "text-blue-500", key: "TOTAL", label: "Total Geral" },
+          { name: "Fila de Inspeção", value: (cadastro.count || 0).toString(), icon: Clock, color: "text-yellow-500", key: "CADASTRO", label: "Aguardando" },
+          { name: "Pendente Liberação", value: (tecnico.count || 0).toString(), icon: AlertCircle, color: "text-orange-500", key: "TECNICO", label: "Em Análise" },
+          { name: "Total Expedido", value: (liberado.count || 0).toString(), icon: CheckCircle2, color: "text-emerald-500", key: "LIBERADO", label: "Concluídos" },
         ]);
       }
 
@@ -100,7 +100,7 @@ export default function Home() {
       setRecentActivity((logs as unknown as DashboardLog[]) || []);
 
       // 3. Simple Lead Time Sim (Real would calculate diff between LEITURA and LIBERADO)
-      setLeadTime({ avg: "4.2h", status: "Excelente" });
+      setLeadTime({ avg: "--", status: "Aguardando Dados" });
 
     } catch (error) {
       console.error("Erro dashboard:", error);
@@ -149,9 +149,6 @@ export default function Home() {
                   <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-2xl ${stat.color} flex items-center justify-center border border-white/10`}>
                     <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                    <TrendingUp className="h-3 w-3" /> {stat.trend}
-                  </span>
                 </div>
                 <div className="space-y-1 relative z-10">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{stat.label}</p>

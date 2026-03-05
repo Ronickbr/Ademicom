@@ -200,8 +200,8 @@ export default function ManagerDashboard() {
                             <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
                                 <Package className="h-6 w-6" />
                             </div>
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                                <TrendingUp className="h-3 w-3" /> +12%
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground/40 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+                                Realtime
                             </span>
                         </div>
                         <div className="space-y-1 relative z-10">
@@ -350,23 +350,13 @@ export default function ManagerDashboard() {
 
                     {/* Quick Actions / Notifications */}
                     <div className="space-y-6">
-                        <div className="glass-card p-6 bg-gradient-to-br from-neutral-900 to-black border-white/5">
-                            <h3 className="text-lg font-black text-white uppercase tracking-tight mb-6">Alertas do Sistema</h3>
-                            <div className="space-y-4">
-                                <div className="flex gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                                    <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-                                    <div>
-                                        <p className="text-xs font-bold text-white mb-1">Gargalo na Triagem</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">O tempo médio de permanência em &quot;CADASTRO&quot; excedeu 4 horas.</p>
-                                    </div>
+                        <div className="glass-card p-6 bg-gradient-to-br from-neutral-900/50 to-black/50 border-white/5">
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight mb-6 opacity-30">Notificações</h3>
+                            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                                <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground/20">
+                                    <Activity className="h-6 w-6" />
                                 </div>
-                                <div className="flex gap-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                                    <TrendingUp className="h-5 w-5 text-blue-500 shrink-0" />
-                                    <div>
-                                        <p className="text-xs font-bold text-white mb-1">Meta Atingida</p>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">A equipe de supervisão atingiu 100% da meta diária.</p>
-                                    </div>
-                                </div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 leading-relaxed italic">Nenhum evento crítico<br />detectado pelo sistema</p>
                             </div>
                         </div>
                     </div>

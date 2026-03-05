@@ -20,14 +20,14 @@ import { DebugPanel } from "@/components/DebugPanel";
 
 const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["TECNICO", "SUPERVISOR", "GESTOR", "ADMIN"] },
-    { name: "Escanear", href: "/scan", icon: Scan, roles: ["TECNICO", "SUPERVISOR", "GESTOR", "ADMIN"] },
-    { name: "Técnico", href: "/technician", icon: ClipboardList, roles: ["TECNICO", "SUPERVISOR", "GESTOR", "ADMIN"] },
-    { name: "Supervisor", href: "/approvals", icon: CheckCircle2, roles: ["SUPERVISOR", "GESTOR", "ADMIN"] },
-    { name: "Gestor", href: "/manager", icon: ShieldCheck, roles: ["GESTOR", "ADMIN"] },
-    { name: "Estoque", href: "/inventory", icon: Package, roles: ["TECNICO", "SUPERVISOR", "GESTOR", "ADMIN"] },
+    { name: "Escanear", href: "/scan", icon: Scan, roles: ["TECNICO", "ADMIN"] },
+    { name: "Fila Técnica", href: "/technician", icon: ClipboardList, roles: ["TECNICO", "ADMIN"] },
+    { name: "Central de Revisão", href: "/approvals", icon: CheckCircle2, roles: ["SUPERVISOR", "ADMIN"] },
+    { name: "Gestão", href: "/manager", icon: ShieldCheck, roles: ["GESTOR", "ADMIN"] },
+    { name: "Estoque", href: "/inventory", icon: Package, roles: ["GESTOR", "SUPERVISOR", "ADMIN"] },
     { name: "Clientes", href: "/clients", icon: Users, roles: ["GESTOR", "ADMIN"] },
     { name: "Pedidos", href: "/orders", icon: Package, roles: ["GESTOR", "ADMIN"] },
-    { name: "Usuários", href: "/admin/users", icon: Users, roles: ["ADMIN", "GESTOR"] },
+    { name: "Usuários", href: "/admin/users", icon: Users, roles: ["ADMIN"] },
     { name: "Configurações", href: "/admin/settings", icon: Settings, roles: ["ADMIN"] },
 ];
 

@@ -40,17 +40,16 @@ export default function ScanPage() {
     // OCR States
     const [showOcrModal, setShowOcrModal] = useState(false);
 
-    // Photos States
-    const [photos, setPhotos] = useState<{
-        product: string | null;
-        model: string | null;
-        serial: string | null;
-        defect: string | null;
-    }>({
-        product: null,
-        model: null,
-        serial: null,
-        defect: null
+    // Photos State
+    const [labelPhoto, setLabelPhoto] = useState<string | null>(null);
+    const [ocrForm, setOcrForm] = useState({
+        brand: "",
+        model: "",
+        original_serial: "",
+        commercial_code: "",
+        refrigerant_gas: "",
+        volume_total: "",
+        voltage: "",
     });
 
     // Custom Hook
@@ -87,43 +86,56 @@ export default function ScanPage() {
         setCameraError(true);
     };
 
-    // OCR Handler
-    const handleOCRScan = async () => {
+    // Capture and OCR Handler
+    const handleCaptureAndOCR = async () => {
         if (!webcamRef.current) return;
         const imageSrc = webcamRef.current.getScreenshot();
         if (!imageSrc) return;
 
+        setLabelPhoto(imageSrc);
+        toast.info("Imagem capturada. Analisando etiqueta...");
+
         const data = await scanImage(imageSrc);
         if (data) {
+            setOcrForm({
+                brand: data.fabricante || "",
+                model: data.modelo || "",
+                original_serial: data.numero_serie || "",
+                commercial_code: data.codigo_comercial || "",
+                refrigerant_gas: data.gas_refrigerante || "",
+                volume_total: data.volume_total || "",
+                voltage: data.tensao || "",
+            });
             setShowOcrModal(true);
         }
     };
 
-    const capturePhoto = (type: 'product' | 'model' | 'serial' | 'defect') => {
-        if (!webcamRef.current) return;
-        const imageSrc = webcamRef.current.getScreenshot();
-        if (imageSrc) {
-            setPhotos(prev => ({ ...prev, [type]: imageSrc }));
-            const label = type === 'product' ? 'Produto' : type === 'model' ? 'Modelo' : type === 'serial' ? 'Série' : 'Avaria';
-            toast.success(`Foto do ${label} capturada!`);
-        }
-    };
-
-    const handleFileUpload = (type: 'product' | 'model' | 'serial' | 'defect') => {
-        setUploadType(type);
+    const handleFileUpload = () => {
         fileInputRef.current?.click();
     };
 
     const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && uploadType) {
+        if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const base64String = reader.result as string;
-                setPhotos(prev => ({ ...prev, [uploadType]: base64String }));
-                const label = uploadType === 'product' ? 'Produto' : uploadType === 'model' ? 'Modelo' : uploadType === 'serial' ? 'Série' : 'Avaria';
-                toast.success(`Foto do ${label} carregada!`);
-                setUploadType(null);
+                setLabelPhoto(base64String);
+                toast.info("Imagem carregada. Analisando etiqueta...");
+
+                const data = await scanImage(base64String);
+                if (data) {
+                    setOcrForm({
+                        brand: data.fabricante || "",
+                        model: data.modelo || "",
+                        original_serial: data.numero_serie || "",
+                        commercial_code: data.codigo_comercial || "",
+                        refrigerant_gas: data.gas_refrigerante || "",
+                        volume_total: data.volume_total || "",
+                        voltage: data.tensao || "",
+                    });
+                    setShowOcrModal(true);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -204,91 +216,19 @@ export default function ScanPage() {
                                             </div>
                                         </div>
 
-                                        {/* OCR & Capture Controls */}
-                                        <div className="absolute bottom-4 left-4 right-4 z-20 flex gap-2 justify-center">
-                                            <div className="flex flex-col gap-2">
-                                                <button
-                                                    onClick={() => capturePhoto('product')}
-                                                    className={cn(
-                                                        "px-3 py-2 backdrop-blur-md border rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95",
-                                                        photos.product ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-black/60 border-white/20 text-white hover:border-primary/50"
-                                                    )}
-                                                >
-                                                    <Camera className="h-3.5 w-3.5" />
-                                                    PRODUTO
-                                                </button>
-                                                <button
-                                                    onClick={() => handleFileUpload('product')}
-                                                    className="px-3 py-1.5 backdrop-blur-md border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 text-white/70 hover:bg-white/10"
-                                                >
-                                                    <Upload className="h-3 w-3" />
-                                                    SUBIR
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <button
-                                                    onClick={() => capturePhoto('model')}
-                                                    className={cn(
-                                                        "px-3 py-2 backdrop-blur-md border rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95",
-                                                        photos.model ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-black/60 border-white/20 text-white hover:border-primary/50"
-                                                    )}
-                                                >
-                                                    <Camera className="h-3.5 w-3.5" />
-                                                    MODELO
-                                                </button>
-                                                <button
-                                                    onClick={() => handleFileUpload('model')}
-                                                    className="px-3 py-1.5 backdrop-blur-md border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 text-white/70 hover:bg-white/10"
-                                                >
-                                                    <Upload className="h-3 w-3" />
-                                                    SUBIR
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <button
-                                                    onClick={() => capturePhoto('serial')}
-                                                    className={cn(
-                                                        "px-3 py-2 backdrop-blur-md border rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95",
-                                                        photos.serial ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-black/60 border-white/20 text-white hover:border-primary/50"
-                                                    )}
-                                                >
-                                                    <Camera className="h-3.5 w-3.5" />
-                                                    SÉRIE
-                                                </button>
-                                                <button
-                                                    onClick={() => handleFileUpload('serial')}
-                                                    className="px-3 py-1.5 backdrop-blur-md border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 text-white/70 hover:bg-white/10"
-                                                >
-                                                    <Upload className="h-3 w-3" />
-                                                    SUBIR
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <button
-                                                    onClick={() => capturePhoto('defect')}
-                                                    className={cn(
-                                                        "px-3 py-2 backdrop-blur-md border rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95",
-                                                        photos.defect ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-black/60 border-white/20 text-white hover:border-primary/50"
-                                                    )}
-                                                >
-                                                    <Camera className="h-3.5 w-3.5" />
-                                                    AVARIA
-                                                </button>
-                                                <button
-                                                    onClick={() => handleFileUpload('defect')}
-                                                    className="px-3 py-1.5 backdrop-blur-md border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/5 text-white/70 hover:bg-white/10"
-                                                >
-                                                    <Upload className="h-3 w-3" />
-                                                    SUBIR
-                                                </button>
-                                            </div>
+                                        {/* Simplified capture button */}
+                                        <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center px-4">
                                             <button
-                                                onClick={handleOCRScan}
+                                                onClick={handleCaptureAndOCR}
                                                 disabled={ocrLoading}
-                                                className="px-3 py-2 bg-primary/20 hover:bg-primary/40 backdrop-blur-md border border-primary/50 rounded-xl text-primary text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 ml-2"
+                                                className="w-full max-w-sm h-16 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-4 transition-all shadow-[0_0_40px_rgba(14,165,233,0.4)] active:scale-95 disabled:opacity-50 disabled:grayscale"
                                             >
-                                                {ocrLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                                                OCR
+                                                {ocrLoading ? (
+                                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                                ) : (
+                                                    <Camera className="h-6 w-6" />
+                                                )}
+                                                {ocrLoading ? "Analisando Etiqueta..." : "Capturar e Analisar"}
                                             </button>
                                         </div>
                                     </>
@@ -299,30 +239,21 @@ export default function ScanPage() {
                                         </div>
                                         <h3 className="text-xl font-black text-white uppercase tracking-tight">Câmera Indisponível</h3>
                                         <p className="text-sm text-muted-foreground max-w-xs mx-auto">Verifique as permissões do navegador ou utilize a entrada manual abaixo.</p>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-4 w-full max-w-sm">
                                             <button
                                                 onClick={() => setCameraError(false)}
-                                                className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all border border-white/5 flex items-center gap-2"
+                                                className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all border border-white/5 flex items-center justify-center gap-3"
                                             >
-                                                <RefreshCw className="h-3 w-3" />
+                                                <RefreshCw className="h-4 w-4" />
                                                 Tentar Novamente
                                             </button>
-                                            <div className="flex gap-1">
-                                                {(['product', 'model', 'serial', 'defect'] as const).map(t => (
-                                                    <button
-                                                        key={t}
-                                                        onClick={() => handleFileUpload(t)}
-                                                        className={cn(
-                                                            "px-3 py-3 border rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all",
-                                                            photos[t] ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
-                                                        )}
-                                                        title={`Subir foto de ${t}`}
-                                                    >
-                                                        <Upload className="h-3.5 w-3.5" />
-                                                        {t === 'product' ? 'PROD' : t === 'model' ? 'MOD' : t === 'serial' ? 'SER' : 'AVAR'}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <button
+                                                onClick={handleFileUpload}
+                                                className="flex-1 px-6 py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3"
+                                            >
+                                                <Upload className="h-4 w-4" />
+                                                Subir Foto
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -466,13 +397,77 @@ export default function ScanPage() {
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-3 overflow-y-auto custom-scrollbar flex-1">
-                            {Object.entries(ocrResult).map(([key, value]) => (
-                                <div key={key} className="flex flex-col gap-1 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
-                                    <span className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">{key.replace(/_/g, ' ')}</span>
-                                    <span className="text-sm font-medium text-white font-mono break-all">{String(value || 'N/A')}</span>
+                        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 bg-black/20">
+                            {/* Form fields for review */}
+                            <div className="grid gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Fabricante / Marca</label>
+                                    <input
+                                        type="text"
+                                        value={ocrForm.brand}
+                                        onChange={e => setOcrForm({ ...ocrForm, brand: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                    />
                                 </div>
-                            ))}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Modelo</label>
+                                    <input
+                                        type="text"
+                                        value={ocrForm.model}
+                                        onChange={e => setOcrForm({ ...ocrForm, model: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Número de Série Original</label>
+                                    <input
+                                        type="text"
+                                        value={ocrForm.original_serial}
+                                        onChange={e => setOcrForm({ ...ocrForm, original_serial: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold font-mono uppercase"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Código Comercial</label>
+                                        <input
+                                            type="text"
+                                            value={ocrForm.commercial_code}
+                                            onChange={e => setOcrForm({ ...ocrForm, commercial_code: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Tensão (Voltagem)</label>
+                                        <input
+                                            type="text"
+                                            value={ocrForm.voltage}
+                                            onChange={e => setOcrForm({ ...ocrForm, voltage: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Gás Refrigerante</label>
+                                        <input
+                                            type="text"
+                                            value={ocrForm.refrigerant_gas}
+                                            onChange={e => setOcrForm({ ...ocrForm, refrigerant_gas: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Volume Total</label>
+                                        <input
+                                            type="text"
+                                            value={ocrForm.volume_total}
+                                            onChange={e => setOcrForm({ ...ocrForm, volume_total: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 outline-none transition-all font-bold"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="p-6 border-t border-white/5 bg-white/5 flex gap-3 shrink-0">
@@ -484,29 +479,16 @@ export default function ScanPage() {
                             </button>
                             <button
                                 onClick={async () => {
-                                    if (!photos.product || !photos.model || !photos.serial || !photos.defect) {
-                                        toast.error("As 4 fotos são obrigatórias (Ambiente, Modelo, Série, Avaria)");
+                                    if (!labelPhoto) {
+                                        toast.error("Foto da etiqueta é obrigatória");
                                         return;
                                     }
 
                                     const capturedPhotos = {
-                                        photo_product: photos.product,
-                                        photo_model: photos.model,
-                                        photo_serial: photos.serial,
-                                        photo_defect: photos.defect,
+                                        photo_model: labelPhoto, // Usamos a foto da etiqueta como foto do modelo
                                     };
 
-                                    const data = {
-                                        brand: ocrResult.fabricante as string,
-                                        model: ocrResult.modelo as string,
-                                        original_serial: ocrResult.numero_serie as string,
-                                        commercial_code: ocrResult.codigo_comercial as string,
-                                        refrigerant_gas: ocrResult.gas_refrigerante as string,
-                                        volume_total: ocrResult.volume_total as string,
-                                        voltage: ocrResult.tensao as string,
-                                    };
-
-                                    await registerProduct(data, capturedPhotos);
+                                    await registerProduct(ocrForm, capturedPhotos);
                                     setShowOcrModal(false);
                                 }}
                                 className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"

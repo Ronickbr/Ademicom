@@ -169,6 +169,23 @@ export default function InventoryPage() {
                 })
                 .eq("id", editingProduct.id);
             if (updateError) throw updateError;
+
+            // Log the edit
+            await supabase
+                .from("product_logs")
+                .insert({
+                    product_id: editingProduct.id,
+                    old_status: editingProduct.status,
+                    new_status: editingProduct.status,
+                    actor_id: profile?.id,
+                    data: {
+                        action: "EDIT_TECHNICAL_DATA",
+                        editor_role: profile?.role,
+                        fields_updated: ["brand", "model", "original_serial", "voltage"],
+                        timestamp: new Date().toISOString()
+                    }
+                });
+
             toast.success("Dados atualizados!");
             setEditingProduct(null);
             fetchInventory();
@@ -426,11 +443,10 @@ export default function InventoryPage() {
                                                     className="h-4 w-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/30 cursor-pointer"
                                                 />
                                             </th>
-                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Especificação Técnica</th>
-                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">ID Rastreio</th>
-                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Fase do Fluxo</th>
-                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Destinação</th>
-                                            <th className="px-4 sm:px-6 py-6 text-right text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Ações Gerais</th>
+                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Equipamento (Marca/Modelo)</th>
+                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Data Entrada (Liberação)</th>
+                                            <th className="px-4 sm:px-6 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Status</th>
+                                            <th className="px-4 sm:px-6 py-6 text-right text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
@@ -442,7 +458,7 @@ export default function InventoryPage() {
                                                     onClick={() => fetchHistory(p)}
                                                     className={cn("group hover:bg-white/[0.02] transition-all duration-300 cursor-pointer", selectedIds.has(p.id) && "bg-primary/5")}
                                                 >
-                                                    <td className="px-4 py-5 text-center" onClick={e => e.stopPropagation()}>
+                                                    <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedIds.has(p.id)}
@@ -450,7 +466,7 @@ export default function InventoryPage() {
                                                             className="h-4 w-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/30 cursor-pointer"
                                                         />
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-5">
+                                                    <td className="px-4 sm:px-6 py-3">
                                                         <div className="flex items-center gap-4">
                                                             <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all">
                                                                 <Layers className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -464,42 +480,30 @@ export default function InventoryPage() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-5">
-                                                        <div className="flex flex-col font-mono">
-                                                            <span className="text-white font-bold text-xs tracking-wider">{p.internal_serial}</span>
-                                                            <span className="text-[9px] text-muted-foreground/60 uppercase tracking-tighter whitespace-nowrap">Serial: {p.original_serial}</span>
+                                                    <td className="px-4 sm:px-6 py-3">
+                                                        <div className="flex flex-col">
+                                                            <p className="font-black text-white text-base group-hover:text-primary transition-colors tracking-tight uppercase italic">{p.brand} {p.model}</p>
+                                                            <span className="text-[9px] font-mono text-muted-foreground/60">S/N: {p.original_serial || p.internal_serial}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-5">
+                                                    <td className="px-4 sm:px-6 py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-white font-bold text-xs uppercase italic tracking-tight">{new Date(p.updated_at).toLocaleDateString('pt-BR')}</span>
+                                                            <span className="text-[9px] text-muted-foreground/40 uppercase font-black">{new Date(p.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 sm:px-6 py-3">
                                                         {config && (
                                                             <div className={cn(
-                                                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border shadow-sm transition-all whitespace-nowrap",
+                                                                "inline-flex items-center gap-1.5 px-2 py-1 rounded text-[8px] font-black uppercase tracking-tight border",
                                                                 config.color
                                                             )}>
-                                                                <config.icon className="h-3 w-3" />
+                                                                <config.icon className="h-2.5 w-2.5" />
                                                                 {config.label}
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-5">
-                                                        {p.orders ? (
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-primary border border-white/10 shadow-inner">
-                                                                    <User className="h-3.5 w-3.5" />
-                                                                </div>
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-xs font-black text-white uppercase tracking-tight whitespace-nowrap">{p.orders.clients?.name}</span>
-                                                                    <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Cliente Ativo</span>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2 text-muted-foreground/30">
-                                                                <div className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                                                                <span className="text-[9px] font-black uppercase tracking-widest italic whitespace-nowrap">Stock Local</span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 sm:px-6 py-5 text-right" onClick={e => e.stopPropagation()}>
+                                                    <td className="px-4 sm:px-6 py-3 text-right" onClick={e => e.stopPropagation()}>
                                                         <div className="flex items-center justify-end gap-2 group-hover:translate-x-[-4px] transition-transform">
                                                             <button
                                                                 onClick={() => fetchHistory(p)}
@@ -574,7 +578,7 @@ export default function InventoryPage() {
 
                 {/* Modal de Edição */}
                 {editingProduct && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
                         <div className="glass-card w-full max-w-xl p-6 sm:p-10 border-white/10 shadow-4xl space-y-6 sm:space-y-10 bg-neutral-900 relative overflow-y-auto max-h-[95vh]">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
 
@@ -639,7 +643,7 @@ export default function InventoryPage() {
 
                 {/* Modal de Exclusão */}
                 {deletingProduct && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/98 backdrop-blur-3xl animate-in zoom-in-95 duration-300">
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-2 sm:p-6 bg-black/98 backdrop-blur-3xl animate-in zoom-in-95 duration-300">
                         <div className="glass-card w-full max-w-md p-8 sm:p-12 border-red-500/30 shadow-4xl text-center space-y-8 sm:space-y-10 bg-neutral-950 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
                             <div className="h-24 w-24 rounded-3xl bg-red-500/10 flex items-center justify-center mx-auto ring-8 ring-red-500/5 rotate-12 group-hover:rotate-0 transition-transform"><AlertCircle className="h-12 w-12 text-red-500" /></div>
