@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { Product } from '@/lib/types'
 import { logger } from '@/lib/logger'
 import { generateNextInternalSerial } from '@/lib/id-generator'
+import Tesseract from 'tesseract.js'
+import { parseElectroluxLabel } from '@/lib/ocr-parser'
 
 const SCAN_COOLDOWN = 3000
 
@@ -164,31 +166,32 @@ export function useScan() {
   }
 
   const scanImage = async (imageSrc: string) => {
-    if (!navigator.onLine) {
-      toast.error("Modo Offline", {
-        description: "O OCR requer internet. Utilize a entrada manual ou aguarde a conexão."
-      })
-      return null
-    }
-
     setOcrLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('ocr-label', {
-        body: { image: imageSrc }
-      })
+      // OCR local usando Tesseract.js (Sem custo de API)
+      const { data: { text } } = await Tesseract.recognize(
+        imageSrc,
+        'por', // Português
+        {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              // Log progress if needed
+            }
+          }
+        }
+      )
 
-      if (error) throw error
-
-      if (data) {
-        setOcrResult(data)
+      if (text) {
+        const parsedData = parseElectroluxLabel(text)
+        setOcrResult(parsedData)
         toast.success("Etiqueta analisada com sucesso!")
-        return data
+        return parsedData
       } else {
-        toast.warning("Nenhum dado identificado na imagem.")
+        toast.warning("Nenhum texto identificado na imagem.")
         return null
       }
     } catch (error) {
-      console.error("OCR Error:", error)
+      console.error("OCR Local Error:", error)
       toast.error("Erro na leitura da etiqueta", {
         description: "Verifique a iluminação e o foco."
       })
