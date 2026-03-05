@@ -3,7 +3,6 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Webcam from "react-webcam";
 import { supabase } from "@/lib/supabase";
 import {
-    ScanLine,
     Loader2,
     CheckCircle,
     Camera,
@@ -11,8 +10,6 @@ import {
     FileText,
     Wifi,
     WifiOff,
-    Barcode,
-    ArrowRight,
     History as HistoryIcon,
     ChevronRight,
     X,
@@ -30,7 +27,6 @@ export default function ScanPage() {
     const navigate = useNavigate();
     const webcamRef = React.useRef<Webcam>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
-    const [manualCode, setManualCode] = useState("");
     const [videoConstraints, setVideoConstraints] = useState<MediaTrackConstraints | boolean>({
         facingMode: "environment"
     });
@@ -57,11 +53,9 @@ export default function ScanPage() {
 
     // Custom Hook
     const {
-        scannedCode,
         isProcessing,
         lastScans,
         isOnline,
-        processCode,
         ocrResult,
         ocrLoading,
         scanImage,
@@ -150,20 +144,6 @@ export default function ScanPage() {
         }
     };
 
-    // Simulation of barcode reading (click on video)
-    const handleSimulateScan = () => {
-        const mockCode = `AMB-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-        processCode(mockCode);
-    };
-
-    const handleManualSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (manualCode) {
-            processCode(manualCode);
-            setManualCode("");
-        }
-    };
-
     if (authLoading) return null;
 
     return (
@@ -173,12 +153,12 @@ export default function ScanPage() {
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                <ScanLine className="h-4 w-4" />
+                                <Camera className="h-4 w-4" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Aquisição de Dados</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Identificação de Produto</span>
                         </div>
-                        <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic">Terminal de <span className="text-primary not-italic font-light">Leitura</span></h1>
-                        <p className="text-muted-foreground font-medium text-sm mt-1 opacity-70 italic">Digitalização e entrada de ativos no fluxo industrial.</p>
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic">Captura de <span className="text-primary not-italic font-light">Etiqueta</span></h1>
+                        <p className="text-muted-foreground font-medium text-sm mt-1 opacity-70 italic">Análise via IA para entrada de ativos no fluxo industrial.</p>
                     </div>
                     <div className="glass-card flex items-center gap-4 py-4 px-8 border-white/5 bg-neutral-900/50 shadow-inner w-full md:w-auto justify-between md:justify-start">
                         <div className={cn("h-10 w-10 rounded-full flex items-center justify-center border shadow-sm", isOnline ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>
@@ -211,20 +191,7 @@ export default function ScanPage() {
                                             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                                             onUserMediaError={handleCameraError}
                                             onUserMedia={() => logger.info("Camera access granted")}
-                                            onClick={handleSimulateScan} // Simulação de clique para scan
                                         />
-                                        {/* Overlay de Scan */}
-                                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                            <div className="w-64 h-40 border-2 border-primary/50 rounded-lg relative animate-pulse shadow-[0_0_50px_rgba(14,165,233,0.2)]">
-                                                <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary" />
-                                                <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary" />
-                                                <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary" />
-                                                <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary" />
-                                                {/* Laser Line */}
-                                                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
-                                            </div>
-                                        </div>
-
                                         {/* Simplified capture button */}
                                         <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center px-4">
                                             <button
@@ -237,7 +204,7 @@ export default function ScanPage() {
                                                 ) : (
                                                     <Camera className="h-6 w-6" />
                                                 )}
-                                                {ocrLoading ? "Analisando Etiqueta..." : "Capturar e Analisar"}
+                                                {ocrLoading ? "Analisando Etiqueta..." : "Capturar Foto"}
                                             </button>
                                         </div>
                                     </>
@@ -267,44 +234,11 @@ export default function ScanPage() {
                                     </div>
                                 )}
 
-                                {scannedCode && (
-                                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-20 animate-in fade-in zoom-in duration-300">
-                                        <div className="text-center space-y-4">
-                                            <div className="h-20 w-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 mx-auto border-2 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                                                <CheckCircle className="h-10 w-10" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">Código Capturado</p>
-                                                <p className="text-3xl font-black text-white tracking-widest font-mono">{scannedCode}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+
                             </div>
                         </div>
 
-                        {/* Manual Input */}
-                        <div className="glass-card p-6 border-white/5 bg-neutral-900/30">
-                            <form onSubmit={handleManualSubmit} className="flex gap-4">
-                                <div className="relative flex-1 group">
-                                    <Barcode className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                    <input
-                                        type="text"
-                                        value={manualCode}
-                                        onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                                        placeholder="Digitar código manualmente..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-4 h-16 text-lg font-mono text-white placeholder:text-muted-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all shadow-inner uppercase tracking-wider"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={!manualCode || isProcessing}
-                                    className="px-8 h-16 bg-white text-black hover:bg-primary hover:text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg disabled:opacity-50 disabled:grayscale flex items-center gap-2 group/btn"
-                                >
-                                    {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5 group-hover/btn:translate-x-1 transition-transform" />}
-                                </button>
-                            </form>
-                        </div>
+
                     </div>
 
                     <div className="lg:col-span-2 space-y-6">
@@ -357,7 +291,7 @@ export default function ScanPage() {
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
                         <div className="text-center space-y-2">
                             <div className="h-16 w-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto border border-amber-500/20 mb-4">
-                                <Barcode className="h-8 w-8" />
+                                <FileText className="h-8 w-8" />
                             </div>
                             <h3 className="text-xl font-black text-white uppercase tracking-tight">Ativo não Identificado</h3>
                             <p className="text-sm text-muted-foreground italic">O código <span className="text-white font-mono font-bold">{notFound}</span> não consta na base de dados.</p>
