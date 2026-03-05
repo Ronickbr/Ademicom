@@ -4,6 +4,8 @@ export interface Profile {
     id: string;
     full_name: string | null;
     role: UserRole;
+    email?: string;
+    password?: string;
     created_at?: string;
     updated_at?: string;
 }
@@ -55,8 +57,11 @@ export interface Product {
     defrost_power: string | null;
     frequency: string | null;
     voltage: string | null;
-    status: string;
-    stock_status?: string | null;
+    status: 'CADASTRO' | 'EM AVALIAÇÃO' | 'EM ESTOQUE' | 'VENDIDO' | 'RECUSADO';
+    photo_product: string | null;
+    photo_model: string | null;
+    photo_serial: string | null;
+    photo_defect: string | null;
     order_id?: string | null;
     is_in_stock: boolean;
     technical_data?: TechnicalData;
@@ -68,7 +73,7 @@ export interface Product {
 export interface ProductLog {
     id: string;
     product_id: string;
-    user_id: string | null;
+    actor_id: string | null;
     old_status: string | null;
     new_status: string;
     checklist: Record<string, boolean> | null;
@@ -77,6 +82,7 @@ export interface ProductLog {
     products?: Partial<Product>;
     data?: {
         checklist?: Record<string, boolean>;
+        checklist_labels?: Record<string, string>;
         observations?: string;
         action?: string;
         reviewer_role?: string;
@@ -98,6 +104,14 @@ export interface Client {
     updated_at: string;
 }
 
+export interface ChecklistItem {
+    id: string;
+    label: string;
+    category: string;
+    is_optional?: boolean;
+    created_at?: string;
+}
+
 export interface Order {
     id: string;
     client_id: string;
@@ -107,4 +121,10 @@ export interface Order {
     clients?: {
         name: string;
     };
+    order_items?: {
+        id: string;
+        products: {
+            model: string | null;
+        } | null;
+    }[];
 }

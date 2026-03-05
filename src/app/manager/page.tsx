@@ -1,134 +1,147 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { supabase } from "@/lib/supabase";
 import {
-    ShieldCheck,
-    XCircle,
-    Search,
-    Loader2,
     TrendingUp,
+    Package,
+    AlertCircle,
+    Calendar,
+    Loader2,
+    ShieldCheck,
+    Users,
+    Activity,
+    Download,
+    Clock,
     Box,
-    CheckCircle2
+    CheckCircle2,
+    XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useRouter } from "next/navigation";
-import { Product } from "@/lib/types";
+import { useNavigate } from "react-router-dom";
+
+interface LogWithRelations {
+    id: string;
+    created_at: string;
+    new_status: string;
+    products: {
+        model: string | null;
+        internal_serial: string | null;
+    } | {
+        model: string | null;
+        internal_serial: string | null;
+    }[] | null;
+    profiles: {
+        full_name: string | null;
+    } | {
+        full_name: string | null;
+    }[] | null;
+}
 
 export default function ManagerDashboard() {
     const { profile, loading: authLoading } = useAuth();
-    const router = useRouter();
-    const [products, setProducts] = useState<Product[]>([]);
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
-    const [isProcessing, setIsProcessing] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [stats, setStats] = useState({
+        total: 0,
+        cadastro: 0,
+        avaliacao: 0,
+        estoque: 0,
+        vendidos: 0
+    });
+    const [recentLogs, setRecentLogs] = useState<LogWithRelations[]>([]);
 
     const isAuthorized = profile?.role === "GESTOR" || profile?.role === "ADMIN";
 
     useEffect(() => {
         if (!authLoading && !isAuthorized) {
-            toast.error("Acesso restrito");
-            router.push("/");
+            toast.error("Acesso restrito a gestores");
+            navigate("/");
             return;
         }
         if (isAuthorized) {
-            fetchManagerQueue();
+            fetchManagerData();
         }
-    }, [authLoading, isAuthorized, router]);
+    }, [authLoading, isAuthorized, navigate]);
 
-    const fetchManagerQueue = async () => {
+    const fetchManagerData = async () => {
         setIsLoading(true);
         try {
-            const { data, error: queueError } = await supabase
-                .from("products")
-                .select(`
-                    *,
-                    product_logs (
-                        data,
-                        created_at
-                    )
-                `)
-                .eq("status", "SUPERVISOR")
-                .order("updated_at", { ascending: false });
+            // Fetch Stats efficiently using count
+            const queries = [
+                supabase.from("products").select("*", { count: 'exact', head: true }), // Total
+                supabase.from("products").select("*", { count: 'exact', head: true }).in('status', ['LIBERADO', 'VENDIDO']), // Homologados
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'CADASTRO'), // Cadastro
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'EM AVALIAÇÃO'), // Em Avaliação
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'EM ESTOQUE'), // Em Estoque
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'VENDIDO'), // Vendidos
+            ];
 
-            if (queueError) throw queueError;
-            setProducts((data as Product[]) || []);
-        } catch (fetchError) {
-            console.error("Erro ao buscar fila do gestor:", fetchError);
+            const results = await Promise.all(queries);
+
+            const newStats = {
+                total: results[0].count || 0,
+                cadastro: results[1].count || 0,
+                avaliacao: results[2].count || 0,
+                estoque: results[3].count || 0,
+                vendidos: results[4].count || 0
+            };
+            setStats(newStats);
+
+            // Fetch Recent Logs
+            const { data: logs, error: logError } = await supabase
+                .from("product_logs")
+                .select(`
+                    id,
+                    created_at,
+                    new_status,
+                    products (model, internal_serial),
+                    profiles (full_name)
+                `)
+                .order("created_at", { ascending: false })
+                .limit(10);
+
+            if (logError) throw logError;
+
+            // Cast manual para garantir tipagem, assumindo que o retorno do supabase bata com a interface
+            setRecentLogs((logs as unknown as LogWithRelations[]) || []);
+
+        } catch (error) {
+            console.error("Erro ao carregar dashboard:", error);
+            toast.error("Erro ao carregar dados gerenciais");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleAction = async (productId: string, action: "RELEASE" | "RETURN") => {
-        setIsProcessing(productId);
-        const newStatus = action === "RELEASE" ? "GESTOR" : "TECNICO";
+    if (authLoading) return null; // MainLayout gerencia isso
 
-        try {
-            const { error: updateError } = await supabase
-                .from("products")
-                .update({
-                    status: newStatus,
-                    stock_status: action === "RELEASE" ? "DISPONIVEL" : "INDISPONIVEL"
-                })
-                .eq("id", productId);
+    if (!isAuthorized) return null;
 
-            if (updateError) throw updateError;
-
-            const { error: logError } = await supabase
-                .from("product_logs")
-                .insert({
-                    product_id: productId,
-                    old_status: "SUPERVISOR",
-                    new_status: newStatus,
-                    user_id: profile?.id,
-                    data: {
-                        manager_action: action,
-                        release_timestamp: new Date().toISOString(),
-                        final_decision: action
-                    }
-                });
-
-            if (logError) throw logError;
-
-            toast.success(action === "RELEASE" ? "Produto Liberado!" : "Retornado ao Técnico", {
-                description: action === "RELEASE" ? "O produto está pronto para ser vinculado a um pedido." : "Necessário revisão técnica adicional."
-            });
-
-            setProducts(prev => prev.filter(p => p.id !== productId));
-        } catch (actionError) {
-            const err = actionError as Error;
-            toast.error("Erro ao processar liberação", { description: err.message });
-        } finally {
-            setIsProcessing(null);
-        }
-    };
-
-    const filteredProducts = products.filter(p =>
-        (p.internal_serial || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.model || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (authLoading || isLoading) {
+    if (isLoading) {
         return (
             <MainLayout>
-                <div className="flex h-[80vh] flex-col items-center justify-center space-y-6">
+                <div className="max-w-7xl mx-auto flex h-[80vh] flex-col items-center justify-center space-y-6">
                     <div className="relative">
                         <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-pulse" />
-                        <Loader2 className="h-16 w-16 animate-spin text-primary relative z-10" />
+                        <Loader2 className="h-16 w-16 animate-spin text-primary relative z-10 opacity-40" />
                     </div>
                     <div className="text-center space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground animate-pulse">Autenticando Nível Gestor...</p>
-                        <p className="text-xs text-muted-foreground/60 italic">Validando credenciais de governança corporativa</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground animate-pulse">Consolidando Métricas</p>
+                        <p className="text-[8px] text-muted-foreground/40 uppercase tracking-widest">Processando indicadores de performance</p>
                     </div>
                 </div>
             </MainLayout>
         );
     }
 
-    if (!isAuthorized) return null;
+    const statusConfig = {
+        'CADASTRO': { label: 'Cadastro', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Clock },
+        'EM AVALIAÇÃO': { label: 'Em Avaliação', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: Activity },
+        'EM ESTOQUE': { label: 'Em Estoque', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: Box },
+        'VENDIDO': { label: 'Vendido', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: CheckCircle2 },
+        'RECUSADO': { label: 'Recusado', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: XCircle },
+    };
 
     return (
         <MainLayout>
@@ -138,114 +151,203 @@ export default function ManagerDashboard() {
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                <ShieldCheck className="h-4 w-4" />
+                                <Activity className="h-4 w-4" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Governance & Release</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Business Intelligence</span>
                         </div>
-                        <h1 className="text-5xl font-black tracking-tighter text-white uppercase italic leading-none">
-                            Controle de <span className="text-primary tracking-normal font-light not-italic">Aprovação</span>
-                        </h1>
-                        <p className="text-muted-foreground font-medium text-sm mt-2 opacity-70 italic">Validação final e liberação estratégica de ativos para o mercado.</p>
+                        <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-white uppercase italic">Visão <span className="text-primary not-italic font-light">Gerencial</span></h1>
+                        <p className="text-muted-foreground font-medium text-xs sm:text-sm mt-1 opacity-70 italic">Análise de fluxo, gargalos e performance operacional.</p>
                     </div>
-                    <div className="flex items-center gap-4 bg-neutral-900/50 border border-white/5 rounded-2xl px-6 py-3 shadow-inner">
-                        <TrendingUp className="h-5 w-5 text-emerald-500" />
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Eficiência</span>
-                            <span className="text-sm font-black text-white">98.5% Global</span>
+                    <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                        <button className="h-12 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white transition-all whitespace-nowrap">
+                            <Calendar className="h-4 w-4 text-primary" />
+                            Esta Semana
+                        </button>
+                        <button
+                            onClick={() => {
+                                // Logic to fetch and export full data
+                                toast.promise(async () => {
+                                    const { data, error } = await supabase
+                                        .from("products")
+                                        .select("internal_serial, original_serial, brand, model, status, voltage, created_at")
+                                        .order("created_at", { ascending: false });
+
+                                    if (error) throw error;
+
+                                    const { exportToExcel } = await import("@/lib/export-utils");
+                                    exportToExcel(data, "relatorio_gerencial_ambicom");
+                                }, {
+                                    loading: 'Gerando relatório...',
+                                    success: 'Relatório exportado com sucesso!',
+                                    error: 'Erro ao gerar relatório',
+                                });
+                            }}
+                            className="h-12 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
+                        >
+                            <Download className="h-4 w-4" />
+                            Relatório
+                        </button>
+                    </div>
+                </div>
+
+                {/* KPI Grid */}
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="glass-card p-6 bg-neutral-900/40 border-white/5 relative overflow-hidden group hover:border-primary/30 transition-all">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Package className="h-24 w-24 text-primary" />
+                        </div>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                                <Package className="h-6 w-6" />
+                            </div>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                                <TrendingUp className="h-3 w-3" /> +12%
+                            </span>
+                        </div>
+                        <div className="space-y-1 relative z-10">
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Volume Total</p>
+                            <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{stats.total}</h3>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-6 bg-neutral-900/40 border-white/5 relative overflow-hidden group hover:border-primary/30 transition-all">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                                <Clock className="h-6 w-6" />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Aguardando Cadastro</p>
+                            <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{stats.cadastro}</h3>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-6 bg-neutral-900/40 border-white/5 relative overflow-hidden group hover:border-primary/30 transition-all">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20">
+                                <Activity className="h-6 w-6" />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Em Avaliação Técnica</p>
+                            <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{stats.avaliacao}</h3>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-6 bg-neutral-900/40 border-white/5 relative overflow-hidden group hover:border-primary/30 transition-all">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                                <Box className="h-6 w-6" />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Disponível em Estoque</p>
+                            <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{stats.estoque}</h3>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-6 bg-neutral-900/40 border-white/5 relative overflow-hidden group hover:border-primary/30 transition-all">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20">
+                                <CheckCircle2 className="h-6 w-6" />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Itens Vendidos</p>
+                            <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tighter">{stats.vendidos}</h3>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 py-2">
-                    <div className="relative flex-1 group max-w-2xl">
-                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Buscar por ID Interno, Modelo ou Marca..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-2xl border border-white/10 bg-neutral-900/50 py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white shadow-inner backdrop-blur-sm"
-                        />
+                <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
+                    {/* Recent Logs Table */}
+                    <div className="lg:col-span-2 glass-card p-0 border-white/5 bg-neutral-900/20 overflow-hidden">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Trilha de Auditoria</h3>
+                            <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors">Ver Completo</button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <tr>
+                                        <th className="px-6 py-4">Data/Hora</th>
+                                        <th className="px-6 py-4">Ativo</th>
+                                        <th className="px-6 py-4">Responsável</th>
+                                        <th className="px-6 py-4">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {recentLogs.map((log) => {
+                                        // Handle potential array return from Supabase if relation is not detected as 1:1
+                                        const profileName = Array.isArray(log.profiles)
+                                            ? log.profiles[0]?.full_name
+                                            : log.profiles?.full_name;
+
+                                        const productModel = Array.isArray(log.products)
+                                            ? log.products[0]?.model
+                                            : log.products?.model;
+
+                                        const productSerial = Array.isArray(log.products)
+                                            ? log.products[0]?.internal_serial
+                                            : log.products?.internal_serial;
+
+                                        const statusInfo = statusConfig[log.new_status as keyof typeof statusConfig];
+
+                                        return (
+                                            <tr key={log.id} className="hover:bg-white/5 transition-colors group">
+                                                <td className="px-6 py-4 font-mono text-xs text-muted-foreground group-hover:text-white transition-colors">
+                                                    {new Date(log.created_at).toLocaleString("pt-BR")}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-white text-xs">{productModel || "N/A"}</span>
+                                                        <span className="font-mono text-[10px] text-muted-foreground">{productSerial || "N/A"}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white">
+                                                            {profileName?.substring(0, 1) || "?"}
+                                                        </div>
+                                                        <span className="text-xs font-medium text-white/80">{profileName || "Sistema"}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex px-2 py-1 rounded-md ${statusInfo?.color || 'bg-white/5 border border-white/10 text-white'} text-[10px] font-black uppercase tracking-wider`}>
+                                                        {statusInfo?.label || log.new_status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
 
-                {filteredProducts.length > 0 ? (
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        {filteredProducts.map((product) => (
-                            <div key={product.id} className="glass-card group hover:border-emerald-500/30 transition-all duration-300 overflow-hidden bg-neutral-900/50">
-                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-                                    <ShieldCheck className="h-20 w-20 text-emerald-500" />
-                                </div>
-
-                                <div className="flex items-start justify-between border-b border-white/5 pb-4 mb-4 relative">
-                                    <div className="flex gap-4">
-                                        <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all border border-primary/10">
-                                            <Box className="h-7 w-7" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-xl text-white group-hover:text-primary transition-colors">{product.model}</h3>
-                                            <p className="text-xs text-muted-foreground uppercase font-black tracking-widest">{product.brand}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-mono text-[10px] bg-white/5 px-3 py-1 rounded-full text-primary tracking-tighter font-bold border border-primary/20 shadow-inner">
-                                            {product.internal_serial}
-                                        </div>
-                                        <p className="text-[9px] text-muted-foreground mt-1 italic">Entrada: {new Date(product.created_at).toLocaleDateString()}</p>
+                    {/* Quick Actions / Notifications */}
+                    <div className="space-y-6">
+                        <div className="glass-card p-6 bg-gradient-to-br from-neutral-900 to-black border-white/5">
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight mb-6">Alertas do Sistema</h3>
+                            <div className="space-y-4">
+                                <div className="flex gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                                    <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-bold text-white mb-1">Gargalo na Triagem</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">O tempo médio de permanência em &quot;CADASTRO&quot; excedeu 4 horas.</p>
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4 mb-6 relative">
-                                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-all shadow-inner">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Revisão Técnica</div>
-                                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                                        </div>
-                                        <div className="text-xs font-bold text-emerald-500 uppercase">Aprovado S/ Ressalva</div>
+                                <div className="flex gap-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                    <TrendingUp className="h-5 w-5 text-blue-500 shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-bold text-white mb-1">Meta Atingida</p>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">A equipe de supervisão atingiu 100% da meta diária.</p>
                                     </div>
-                                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-all shadow-inner">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">Auditoria</div>
-                                            <ShieldCheck className="h-3 w-3 text-blue-500" />
-                                        </div>
-                                        <div className="text-xs font-bold text-blue-500 uppercase">Dados Validados</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 relative">
-                                    <button
-                                        onClick={() => handleAction(product.id, "RELEASE")}
-                                        disabled={!!isProcessing}
-                                        className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
-                                    >
-                                        {isProcessing === product.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
-                                        Liberar para Venda
-                                    </button>
-                                    <button
-                                        onClick={() => handleAction(product.id, "RETURN")}
-                                        disabled={!!isProcessing}
-                                        className="flex-1 h-14 rounded-2xl border border-white/10 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/20 transition-all flex items-center justify-center gap-2 font-bold text-[10px] uppercase tracking-widest active:scale-95"
-                                        title="Retornar para Técnico"
-                                    >
-                                        <XCircle className="h-4 w-4" />
-                                        Recusar
-                                    </button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="glass-card flex flex-col items-center justify-center py-24 text-center border-dashed border-2 border-white/5 bg-white/[0.01]">
-                        <div className="h-24 w-24 rounded-full bg-emerald-500/5 flex items-center justify-center mb-8 relative">
-                            <CheckCircle2 className="h-12 w-12 text-emerald-500/30" />
-                            <div className="absolute inset-0 rounded-full border-2 border-emerald-500/10 animate-ping opacity-20" />
                         </div>
-                        <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Fila de Liberação Vazia</h3>
-                        <p className="text-muted-foreground max-w-sm mx-auto text-sm leading-relaxed italic">
-                            Excelente! Todos os produtos revisados pela supervisão já foram processados.
-                        </p>
                     </div>
-                )}
+                </div>
             </div>
         </MainLayout>
     );

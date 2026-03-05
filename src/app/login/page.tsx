@@ -1,13 +1,11 @@
-"use client";
-
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Lock, Mail, Loader2, ShieldCheck, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-    const router = useRouter();
+    const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -29,12 +27,12 @@ export default function LoginPage() {
             });
 
             // Redirect to dashboard
-            router.push("/");
-            router.refresh();
-        } catch (error: any) {
+            navigate("/");
+        } catch (error) {
             console.error("Login error:", error);
+            const errorMessage = error instanceof Error ? error.message : "Verifique suas credenciais.";
             toast.error("Erro ao entrar", {
-                description: error.message || "Verifique suas credenciais.",
+                description: errorMessage,
             });
         } finally {
             setIsLoading(false);
@@ -46,17 +44,18 @@ export default function LoginPage() {
             {/* Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px]" />
+                <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] bg-secondary/10 rounded-full blur-[80px]" />
             </div>
 
             <div className="w-full max-w-md space-y-8 relative">
                 {/* Logo Section */}
                 <div className="text-center space-y-2">
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-2xl mb-4">
-                        <Zap className="h-8 w-8 text-primary fill-primary" />
+                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-2xl mb-4 overflow-hidden">
+                        <img src="/logo.png" alt="Ambicom" className="h-full w-full object-cover p-2" />
                     </div>
                     <h1 className="text-4xl font-extrabold text-white tracking-tighter">
-                        Scan<span className="text-primary italic">Relatório</span>
+                        Ambicom
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium tracking-wide">
                         SISTEMA DE RASTREABILIDADE INDUSTRIAL
@@ -64,7 +63,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* Login Card */}
-                <div className="glass-card p-8 border-white/10 shadow-2xl relative group overflow-hidden bg-neutral-950/50 backdrop-blur-xl">
+                <div className="glass-card p-6 sm:p-8 border-white/10 shadow-2xl relative group overflow-hidden bg-neutral-950/50 backdrop-blur-xl">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                     <form onSubmit={handleLogin} className="space-y-6">
@@ -134,7 +133,7 @@ export default function LoginPage() {
                 {/* Footer Link */}
                 <div className="text-center">
                     <button
-                        onClick={() => router.push("/")}
+                        onClick={() => navigate("/")}
                         className="text-xs text-muted-foreground hover:text-white transition-colors uppercase tracking-widest font-bold opacity-50 hover:opacity-100"
                     >
                         Voltar para a página inicial

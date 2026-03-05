@@ -1,9 +1,7 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { supabase } from "@/lib/supabase";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useNavigate } from "react-router-dom";
 import {
     Loader2,
     ChevronLeft,
@@ -14,54 +12,100 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Product } from "@/lib/types";
-
-const checklistItems = [
-    { id: "power", label: "Liga Corretamente?", category: "Funcional" },
-    { id: "display", label: "Display/Painel funcionando?", category: "Funcional" },
-    { id: "physical_status", label: "Integridade Física (Sem amassados/riscos)", category: "Estético" },
-    { id: "cleanliness", label: "Estado de Limpeza", category: "Geral" },
-    { id: "cables", label: "Cabos e Conectores íntegros?", category: "Componentes" },
-];
+import { Product, ChecklistItem } from "@/lib/types";
+import { Plus, X } from "lucide-react";
 
 export default function TechnicianChecklist() {
     const { id } = useParams();
-    const router = useRouter();
+    const navigate = useNavigate();
     const [product, setProduct] = useState<Product | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
     const [checklistData, setChecklistData] = useState<Record<string, boolean>>({});
     const [obs, setObs] = useState("");
 
+    // New field state
+    const [isAddingField, setIsAddingField] = useState(false);
+    const [newFieldLabel, setNewFieldLabel] = useState("");
+    const [newFieldCategory, setNewFieldCategory] = useState("Geral");
+    const [isSavingField, setIsSavingField] = useState(false);
+
     useEffect(() => {
-        if (id) fetchProduct();
-    }, [id]);
+        const fetchData = async () => {
+            try {
+                // Fetch Product
+                const { data: productData, error: productError } = await supabase
+                    .from("products")
+                    .select("*")
+                    .eq("id", id)
+                    .single();
 
-    const fetchProduct = async () => {
-        try {
-            const { data, error } = await supabase
-                .from("products")
-                .select("*")
-                .eq("id", id)
-                .single();
+                if (productError) throw productError;
+                setProduct(productData as Product);
 
-            if (error) throw error;
-            setProduct(data as Product);
+                // Fetch Checklist Items
+                const { data: itemsData, error: itemsError } = await supabase
+                    .from("checklist_items")
+                    .select("*")
+                    .order("created_at", { ascending: true });
 
-            const initial: Record<string, boolean> = {};
-            checklistItems.forEach(item => initial[item.id] = false);
-            setChecklistData(initial);
-        } catch (error) {
-            console.error("Erro:", error);
-            toast.error("Produto não encontrado");
-            router.push("/technician");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+                if (itemsError) throw itemsError;
+
+                const items = itemsData as ChecklistItem[];
+                setChecklistItems(items);
+
+                const initial: Record<string, boolean> = {};
+                items.forEach(item => initial[item.id] = false);
+                setChecklistData(initial);
+            } catch (error) {
+                console.error("Erro:", error);
+                toast.error("Erro ao carregar dados");
+                navigate("/technician");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (id) fetchData();
+    }, [id, navigate]);
 
     const toggleItem = (itemId: string) => {
         setChecklistData(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+    };
+
+    const handleAddField = async () => {
+        if (!newFieldLabel.trim()) {
+            toast.error("O nome do campo é obrigatório");
+            return;
+        }
+
+        setIsSavingField(true);
+        try {
+            const { data, error } = await supabase
+                .from("checklist_items")
+                .insert({
+                    label: newFieldLabel.trim(),
+                    category: newFieldCategory,
+                    is_optional: true
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            const newItem = data as ChecklistItem;
+            setChecklistItems(prev => [...prev, newItem]);
+            setChecklistData(prev => ({ ...prev, [newItem.id]: false }));
+            setNewFieldLabel("");
+            setIsAddingField(false);
+            toast.success("Novo campo adicionado permanentemente!");
+        } catch (error) {
+            console.error("Erro ao adicionar campo:", error);
+            toast.error("Erro ao salvar novo campo");
+        } finally {
+            setIsSavingField(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -70,8 +114,7 @@ export default function TechnicianChecklist() {
             const { error: updateError } = await supabase
                 .from("products")
                 .update({
-                    status: "TECNICO",
-                    stock_status: "DISPONIVEL"
+                    status: "TECNICO"
                 })
                 .eq("id", id);
 
@@ -83,9 +126,13 @@ export default function TechnicianChecklist() {
                     product_id: id,
                     old_status: "CADASTRO",
                     new_status: "TECNICO",
-                    user_id: (await supabase.auth.getUser()).data.user?.id || null,
+                    actor_id: (await supabase.auth.getUser()).data.user?.id || null,
                     data: {
                         checklist: checklistData,
+                        checklist_labels: checklistItems.reduce((acc, item) => {
+                            acc[item.id] = item.label;
+                            return acc;
+                        }, {} as Record<string, string>),
                         observations: obs,
                         technician_timestamp: new Date().toISOString()
                     }
@@ -96,7 +143,7 @@ export default function TechnicianChecklist() {
             toast.success("Checklist finalizado!", {
                 description: "Produto enviado para aprovação do Supervisor."
             });
-            router.push("/technician");
+            navigate("/technician");
         } catch (error) {
             const err = error as Error;
             console.error("Erro ao salvar:", err);
@@ -127,14 +174,14 @@ export default function TechnicianChecklist() {
         <MainLayout>
             <div className="max-w-4xl mx-auto space-y-10 pb-24">
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => navigate(-1)}
                     className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-all group"
                 >
                     <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                     Voltar para Fila
                 </button>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-white/5 pb-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-8 border-b border-white/5 pb-8 sm:pb-10">
                     <div className="space-y-2">
                         <div className="flex items-center gap-3 mb-1">
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
@@ -142,20 +189,22 @@ export default function TechnicianChecklist() {
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Evidência Técnica</span>
                         </div>
-                        <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic leading-none">
+                        <h1 className="text-2xl sm:text-4xl font-black tracking-tighter text-white uppercase italic leading-none">
                             Validação de <span className="text-primary not-italic font-light tracking-normal">Checklist</span>
                         </h1>
-                        <p className="text-muted-foreground font-medium text-sm italic opacity-70">Auditoria técnica do ativo: <span className="text-white font-mono not-italic">{product?.internal_serial}</span></p>
+                        <p className="text-muted-foreground font-medium text-xs sm:text-sm italic opacity-70">Auditoria técnica do ativo: <span className="text-white font-mono not-italic">{product?.internal_serial}</span></p>
                     </div>
-                    <div className="glass-card bg-neutral-900 border-white/10 p-6 flex flex-col items-end shadow-2xl min-w-[240px]">
-                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1 opacity-50 text-right">Especificação</span>
-                        <div className="font-black text-xl text-white tracking-tight uppercase italic text-right mb-1">{product?.model}</div>
-                        <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{product?.brand}</div>
+                    <div className="glass-card bg-neutral-900 border-white/10 p-4 sm:p-6 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center shadow-2xl w-full md:w-auto min-w-[240px]">
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-0 md:mb-1 opacity-50 text-right">Especificação</span>
+                        <div className="text-right">
+                            <div className="font-black text-lg sm:text-xl text-white tracking-tight uppercase italic mb-0 md:mb-1">{product?.model}</div>
+                            <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{product?.brand}</div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-5 gap-10">
-                    <div className="lg:col-span-3 space-y-8">
+                <div className="grid lg:grid-cols-5 gap-6 sm:gap-10">
+                    <div className="lg:col-span-3 space-y-6 sm:space-y-8">
                         {/* Dynamic Checklist */}
                         <div className="grid gap-3">
                             {checklistItems.map((item) => (
@@ -163,40 +212,99 @@ export default function TechnicianChecklist() {
                                     key={item.id}
                                     onClick={() => toggleItem(item.id)}
                                     className={cn(
-                                        "flex items-center justify-between p-6 rounded-2xl border transition-all duration-300 text-left group",
+                                        "flex items-center justify-between p-4 sm:p-6 rounded-2xl border transition-all duration-300 text-left group",
                                         checklistData[item.id]
                                             ? "bg-primary/5 border-primary/40 shadow-[0_0_20px_rgba(14,165,233,0.1)]"
                                             : "bg-white/5 border-white/5 hover:border-white/10"
                                     )}
                                 >
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-4 sm:gap-6">
                                         <div className={cn(
-                                            "h-8 w-8 rounded-xl border-2 flex items-center justify-center transition-all duration-500",
+                                            "h-8 w-8 rounded-xl border-2 flex items-center justify-center transition-all duration-500 shrink-0",
                                             checklistData[item.id] ? "bg-primary border-primary rotate-0 scale-110 shadow-lg shadow-primary/20" : "border-white/10 rotate-45 scale-90"
                                         )}>
                                             {checklistData[item.id] && <CheckCircle className="h-5 w-5 text-white" />}
                                         </div>
                                         <div>
-                                            <div className={cn("text-lg font-black tracking-tight transition-colors italic uppercase", checklistData[item.id] ? "text-primary" : "text-white/80")}>
+                                            <div className={cn("text-base sm:text-lg font-black tracking-tight transition-colors italic uppercase", checklistData[item.id] ? "text-primary" : "text-white/80")}>
                                                 {item.label}
                                             </div>
                                             <div className="text-[10px] font-black uppercase text-muted-foreground/40 tracking-widest mt-0.5">{item.category}</div>
                                         </div>
                                     </div>
                                     {checklistData[item.id] && (
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest animate-in fade-in zoom-in slide-in-from-right-4">
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest animate-in fade-in zoom-in slide-in-from-right-4 shrink-0 ml-2">
                                             OK
                                             <CheckCircle className="h-3 w-3" />
                                         </div>
                                     )}
                                 </button>
                             ))}
+
+                            {/* Add Field Button/Input */}
+                            {!isAddingField ? (
+                                <button
+                                    onClick={() => setIsAddingField(true)}
+                                    className="flex items-center justify-center gap-3 p-4 rounded-2xl border border-dashed border-white/20 hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                >
+                                    <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                                    <span className="text-sm font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">Adicionar Novo Campo</span>
+                                </button>
+                            ) : (
+                                <div className="glass-card bg-neutral-900 border-primary/30 p-6 rounded-2xl space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl">
+                                    <div className="flex items-center justify-between pb-2 border-b border-white/5 mb-2">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Novo Requisito Técnico</span>
+                                        <button onClick={() => setIsAddingField(false)} className="text-muted-foreground hover:text-white transition-colors">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Nome do Item</label>
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={newFieldLabel}
+                                                onChange={(e) => setNewFieldLabel(e.target.value)}
+                                                placeholder="Ex: Verificar vedação da porta..."
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-bold placeholder:font-medium placeholder:text-muted-foreground/30 italic"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Categoria</label>
+                                                <select
+                                                    value={newFieldCategory}
+                                                    onChange={(e) => setNewFieldCategory(e.target.value)}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="Funcional">Funcional</option>
+                                                    <option value="Estético">Estético</option>
+                                                    <option value="Componentes">Componentes</option>
+                                                    <option value="Geral">Geral</option>
+                                                    <option value="Outros">Outros</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex items-end shadow-2xl">
+                                                <button
+                                                    onClick={handleAddField}
+                                                    disabled={isSavingField}
+                                                    className="w-full h-[46px] rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(14,165,233,0.3)] flex items-center justify-center gap-2"
+                                                >
+                                                    {isSavingField ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                                                    Confirmar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="lg:col-span-2 space-y-8">
+                    <div className="lg:col-span-2 space-y-6 sm:space-y-8">
                         {/* Observations */}
-                        <div className="glass-card bg-neutral-900/40 space-y-4 p-8 border-white/5">
+                        <div className="glass-card bg-neutral-900/40 space-y-4 p-6 sm:p-8 border-white/5">
                             <div className="flex items-center gap-3">
                                 <AlertTriangle className="h-4 w-4 text-primary" />
                                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Observações do Laudo</label>
@@ -219,19 +327,19 @@ export default function TechnicianChecklist() {
                             </div>
                         )}
 
-                        <div className="flex gap-4 p-2">
+                        <div className="flex flex-col sm:flex-row gap-4 p-2">
                             <button
                                 onClick={handleSubmit}
                                 disabled={isSubmitting}
-                                className="btn-primary flex-1 h-16 flex items-center justify-center gap-4 text-xs font-black uppercase tracking-[0.2em] shadow-2xl relative overflow-hidden group/btn disabled:grayscale"
+                                className="btn-primary flex-1 h-14 sm:h-16 flex items-center justify-center gap-4 text-xs font-black uppercase tracking-[0.2em] shadow-2xl relative overflow-hidden group/btn disabled:grayscale rounded-xl"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000" />
                                 {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
                                 Finalizar Protocolo
                             </button>
                             <button
-                                onClick={() => router.back()}
-                                className="px-8 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.2em] transition-all text-muted-foreground hover:text-white"
+                                onClick={() => navigate(-1)}
+                                className="px-8 h-14 sm:h-auto rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.2em] transition-all text-muted-foreground hover:text-white"
                             >
                                 Cancelar
                             </button>

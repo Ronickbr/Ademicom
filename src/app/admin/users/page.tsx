@@ -1,18 +1,12 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { supabase } from "@/lib/supabase";
 import {
-    Users,
-    UserPlus,
     Shield,
     Mail,
     Calendar,
     Loader2,
     Search,
-    MoreVertical,
-    Check,
     X,
     UserCircle,
     ShieldCheck,
@@ -20,11 +14,13 @@ import {
     Settings,
     ChevronRight,
     Lock,
-    User
+    User,
+    RefreshCw,
+    Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Profile, UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +28,7 @@ const ROLES: UserRole[] = ["TECNICO", "SUPERVISOR", "GESTOR", "ADMIN"];
 
 export default function UsersManagementPage() {
     const { profile, loading: authLoading } = useAuth();
-    const router = useRouter();
+    const navigate = useNavigate();
     const [users, setUsers] = useState<Profile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -48,15 +44,17 @@ export default function UsersManagementPage() {
         role: "TECNICO" as UserRole
     });
 
+    const [editingUser, setEditingUser] = useState<Profile | null>(null);
+
     const isAuthorized = profile?.role === "ADMIN" || profile?.role === "GESTOR";
 
     useEffect(() => {
         if (!authLoading && !isAuthorized) {
-            router.push("/");
+            navigate("/");
         } else if (isAuthorized) {
             fetchUsers();
         }
-    }, [authLoading, isAuthorized]);
+    }, [authLoading, isAuthorized, navigate]);
 
     const fetchUsers = async () => {
         setIsLoading(true);
@@ -68,28 +66,42 @@ export default function UsersManagementPage() {
 
             if (error) throw error;
             setUsers((data as Profile[]) || []);
-        } catch (error) {
-            console.error("Erro ao buscar usuários:", error);
+        } catch {
             toast.error("Erro ao carregar lista de usuários");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleUpdateRole = async (userId: string, newRole: UserRole) => {
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+
+        setIsSaving(true);
         try {
-            const { error } = await supabase
-                .from("profiles")
-                .update({ role: newRole })
-                .eq("id", userId);
+            // Using edge function to update sensitive data (email/password) and metadata
+            const { data, error: functionError } = await supabase.functions.invoke("update-user", {
+                body: {
+                    userId: editingUser.id,
+                    email: editingUser.email,
+                    password: editingUser.password,
+                    role: editingUser.role,
+                    fullName: editingUser.full_name
+                }
+            });
 
-            if (error) throw error;
+            if (functionError) throw functionError;
+            if (data?.error) throw new Error(data.error);
 
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-            setEditingId(null);
             toast.success("Perfil atualizado com sucesso!");
+            setEditingUser(null);
+            fetchUsers(); // Refresh the list
         } catch (error) {
-            toast.error("Erro ao atualizar perfil");
+            const err = error as Error;
+            console.error("Erro ao atualizar usuário:", err);
+            toast.error("Erro ao atualizar perfil", { description: err.message });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -122,6 +134,31 @@ export default function UsersManagementPage() {
         }
     };
 
+    const handleDeleteUser = async (userId: string) => {
+        if (!confirm("Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.")) {
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const { data, error } = await supabase.functions.invoke("delete-user", {
+                body: { userId }
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            toast.success("Usuário excluído com sucesso!");
+            fetchUsers();
+        } catch (error) {
+            const err = error as Error;
+            console.error("Erro ao excluir usuário:", err);
+            toast.error("Erro ao excluir usuário", { description: err.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const filteredUsers = users.filter(u =>
         (u.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.role.toLowerCase().includes(searchTerm.toLowerCase())
@@ -150,9 +187,9 @@ export default function UsersManagementPage() {
 
     return (
         <MainLayout>
-            <div className="max-w-7xl mx-auto space-y-10 pb-12">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-10 pb-12">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
@@ -160,10 +197,10 @@ export default function UsersManagementPage() {
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Controle de Identidade & Acesso</span>
                         </div>
-                        <h1 className="text-5xl font-black tracking-tighter text-white uppercase italic">Gestão de <span className="text-primary not-italic font-light">Membros</span></h1>
-                        <p className="text-muted-foreground font-medium text-sm mt-1 opacity-70 italic">Administração de permissões, cargos e auditoria de segurança.</p>
+                        <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-white uppercase italic">Gestão de <span className="text-primary not-italic font-light">Membros</span></h1>
+                        <p className="text-muted-foreground font-medium text-xs sm:text-sm mt-1 opacity-70 italic">Administração de permissões, cargos e auditoria de segurança.</p>
                     </div>
-                    <button onClick={() => setShowAddModal(true)} className="px-8 h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <button onClick={() => setShowAddModal(true)} className="w-full md:w-auto px-8 h-12 sm:h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
                         <Plus className="h-4 w-4" />
                         NOVO MEMBRO
                     </button>
@@ -178,11 +215,11 @@ export default function UsersManagementPage() {
                             placeholder="Localizar membro por nome, email ou cargo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-2xl border border-white/10 bg-neutral-900/50 py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white shadow-inner backdrop-blur-sm placeholder:text-muted-foreground/30"
+                            className="w-full rounded-2xl border border-white/10 bg-neutral-900/50 py-3 sm:py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all text-white shadow-inner backdrop-blur-sm placeholder:text-muted-foreground/30"
                         />
                     </div>
                     <div className="flex gap-3 w-full md:w-auto">
-                        <button className="flex-1 md:flex-none px-8 h-14 bg-neutral-900/50 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-3 hover:bg-white/5 transition-all shadow-inner">
+                        <button className="flex-1 md:flex-none px-6 sm:px-8 h-12 sm:h-14 bg-neutral-900/50 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-3 hover:bg-white/5 transition-all shadow-inner">
                             <Settings className="h-4 w-4 text-primary" />
                             Políticas
                         </button>
@@ -190,20 +227,20 @@ export default function UsersManagementPage() {
                 </div>
 
                 {/* Users List */}
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                     {filteredUsers.map((u) => (
-                        <div key={u.id} className="glass-card border-white/5 bg-neutral-900/40 p-6 flex items-start justify-between group hover:border-primary/30 transition-all duration-500 overflow-hidden relative">
+                        <div key={u.id} className="glass-card border-white/5 bg-neutral-900/40 p-4 sm:p-6 flex items-start justify-between group hover:border-primary/30 transition-all duration-500 overflow-hidden relative">
                             <div className="absolute top-0 left-0 w-1 h-full bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                            <div className="flex gap-5">
-                                <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-primary/10 group-hover:border-primary/30 transition-all">
-                                    <UserCircle className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <div className="flex gap-3 sm:gap-5">
+                                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-primary/10 group-hover:border-primary/30 transition-all shrink-0">
+                                    <UserCircle className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground group-hover:text-primary transition-colors" />
                                 </div>
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-3">
-                                        <h3 className="font-bold text-lg text-white group-hover:text-primary transition-colors">{u.full_name || "Sem Nome"}</h3>
+                                <div className="space-y-1 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                        <h3 className="font-bold text-base sm:text-lg text-white group-hover:text-primary transition-colors truncate max-w-[150px] sm:max-w-none">{u.full_name || "Sem Nome"}</h3>
                                         <span className={cn(
-                                            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-sm",
+                                            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-sm whitespace-nowrap",
                                             u.role === "ADMIN" ? "bg-red-500/10 text-red-400 border-red-500/20" :
                                                 u.role === "GESTOR" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
                                                     u.role === "SUPERVISOR" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
@@ -212,7 +249,8 @@ export default function UsersManagementPage() {
                                             {u.role}
                                         </span>
                                     </div>
-                                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">
+                                        <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {u.email || "Sem Email"}</span>
                                         <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {new Date(u.created_at || "").toLocaleDateString("pt-BR")}</span>
                                         <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" /> ID: {u.id.substring(0, 8)}...</span>
                                     </div>
@@ -220,37 +258,20 @@ export default function UsersManagementPage() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                {editingId === u.id ? (
-                                    <div className="flex gap-1 bg-black/40 p-1 rounded-xl border border-white/10 animate-in fade-in zoom-in duration-300">
-                                        {ROLES.map(role => (
-                                            <button
-                                                key={role}
-                                                onClick={() => handleUpdateRole(u.id, role)}
-                                                className={cn(
-                                                    "px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all",
-                                                    u.role === role
-                                                        ? "bg-primary text-white"
-                                                        : "text-muted-foreground hover:bg-white/5 hover:text-white"
-                                                )}
-                                            >
-                                                {role}
-                                            </button>
-                                        ))}
-                                        <button
-                                            onClick={() => setEditingId(null)}
-                                            className="p-1.5 rounded-lg text-muted-foreground hover:bg-white/5 ml-1"
-                                        >
-                                            <ChevronRight className="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => setEditingId(u.id)}
-                                        className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 hover:bg-primary/20 hover:border-primary/50 transition-all text-muted-foreground hover:text-primary shadow-inner"
-                                    >
-                                        <Shield className="h-4 w-4" />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => setEditingUser(u)}
+                                    className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 hover:bg-primary/20 hover:border-primary/50 transition-all text-muted-foreground hover:text-primary shadow-inner"
+                                    title="Editar Membro"
+                                >
+                                    <Settings className="h-4 w-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 hover:bg-red-500/20 hover:border-red-500/50 transition-all text-muted-foreground hover:text-red-500 shadow-inner"
+                                    title="Excluir Membro"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -349,6 +370,106 @@ export default function UsersManagementPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowAddModal(false)}
+                                        className="h-16 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+                {/* Edit User Modal */}
+                {editingUser && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500">
+                        <div className="glass-card w-full max-w-md space-y-8 border-white/10 shadow-2xl p-10 bg-neutral-900/90 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+                            <div className="flex items-center justify-between relative">
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl font-black text-white tracking-tight">Editar Perfil</h2>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-black">Atualização de Cadastro</p>
+                                </div>
+                                <button onClick={() => setEditingUser(null)} className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground hover:text-white transition-all hover:bg-red-500/20 hover:text-red-500 border border-white/10">
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleUpdateUser} className="space-y-6 relative">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nome Completo</label>
+                                        <div className="relative group">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                            <input
+                                                type="text"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all font-bold"
+                                                placeholder="Ex: João Silva"
+                                                value={editingUser.full_name || ""}
+                                                onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Novo E-mail (Opcional)</label>
+                                        <div className="relative group">
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                            <input
+                                                type="email"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all font-bold"
+                                                placeholder="Novo e-mail corporativo"
+                                                value={editingUser.email || ""}
+                                                onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Alterar Senha (Opcional)</label>
+                                        <div className="relative group">
+                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                            <input
+                                                type="password"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all font-bold"
+                                                placeholder="••••••••"
+                                                value={editingUser.password || ""}
+                                                onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Cargo / Nível de Acesso</label>
+                                        <div className="relative group">
+                                            <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                            <select
+                                                className="w-full bg-neutral-800 border border-white/10 rounded-xl pl-12 pr-10 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
+                                                value={editingUser.role}
+                                                onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
+                                            >
+                                                <option value="TECNICO">Técnico Operacional</option>
+                                                <option value="SUPERVISOR">Supervisor de QA</option>
+                                                <option value="GESTOR">Gestor Logístico</option>
+                                                <option value="ADMIN">Administrador de Sistema</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground opacity-50">
+                                                <ChevronRight className="h-5 w-5 rotate-90" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 flex flex-col gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={isSaving}
+                                        className="h-16 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] hover:brightness-110 active:scale-95 disabled:grayscale disabled:opacity-50 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3 border-t border-white/10"
+                                    >
+                                        {isSaving ? <Loader2 className="h-6 w-6 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
+                                        Salvar Alterações
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingUser(null)}
                                         className="h-16 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white"
                                     >
                                         Cancelar

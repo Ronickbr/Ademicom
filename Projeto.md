@@ -1,44 +1,75 @@
-DESCRITIVO DE DESENVOLVIMENTO
+## 1. Visão Geral do Projeto
+Este sistema automatiza a rastreabilidade, o controle técnico e o fluxo comercial de produtos de linha branca salvados. O software utiliza Inteligência Artificial (OCR) para extrair dados técnicos complexos de etiquetas originais, gerencia a reetiquetagem interna com numeração sequencial controlada e oferece um dashboard analítico para o setor comercial.
 
-Com o objetivo de criar um sistema próprio para controle, rastreabilidade e fluxo interno de produtos de linha branca, propomos o desenvolvimento de um novo sistema web voltado à leitura, registro e gestão de etiquetas, conforme descrito a seguir:
+---
 
-1. Leitura e Registro de Etiquetas de Produtos
+## 2. Perfis de Usuário e Permissões (RBAC)
+O Administrador realiza a gestão centralizada de acessos no Módulo Admin.
 
-- O sistema permitirá a leitura de etiquetas físicas por meio da câmera de dispositivos móveis, diretamente no navegador do sistema web.
-- A leitura das informações da etiqueta será realizada por meio de integração com ferramenta de inteligência artificial, destinada à extração de dados textuais da imagem.
-- As informações extraídas serão armazenadas no sistema e vinculadas a um registro único do produto.
-- Para cada etiqueta registrada, o sistema gerará um número único de identificação interna, que servirá como referência própria da empresa Ambicom.
+* **Administrador**: Gestão de usuários (criar/editar); configuração inicial e ajuste manual da sequência do ID Ambicom; acesso total a relatórios.
+* **Técnico**: Leitura de etiqueta original via OCR; upload de fotos de avarias; preenchimento de checklist técnico.
+* **Supervisor**: Validação de laudos; aprovação para entrada em estoque; comando de impressão da etiqueta interna Ambicom.
+* **Gestor**: Cadastro de clientes; visualização de estoque real; criação de pedidos e baixa automática de vendas.
 
-2. Gestão de Identificação e Etiquetas Internas
+---
 
-- Os produtos cadastrados poderão receber uma nova identificação interna da empresa, substituindo o número de série original do fabricante para fins de controle interno e revenda.
-- O sistema permitirá a geração das informações necessárias para impressão de uma nova etiqueta interna, contendo os dados cadastrados do produto.
-- A impressão da etiqueta ficará condicionada às permissões do usuário.
+## 3. Requisitos de Dados (Extração Total da Etiqueta)
+O sistema deve processar a imagem e preencher automaticamente os campos baseados no padrão Electrolux:
 
-3. Controle de Usuários e Permissões
+### 3.1 Identificação e Rastreabilidade
+* **Marca**: Electrolux.
+* **Modelo**: Ex: IM8S ou IM8.
+* **Código Comercial**: Ex: 02623FBA.
+* **Cor**: Ex: 30 (Inox) ou 06 (Branco).
+* **PNC/ML**: Ex: 900277738 / 00.
+* **Número de Série Original**: Identificador de fábrica (ex: 30926473).
+* **Data de Fabricação**: Registro de data e hora da produção.
 
-- O sistema contará com controle de usuários, com níveis de acesso distintos.
-- As permissões permitirão definir usuários com acesso apenas para inclusão de informações e usuários com permissão para edição ou exclusão de registros, conforme regras definidas pela empresa.
+### 3.2 Especificações Elétricas e Performance
+* **Tensão (Voltagem)**: 127 V ou 220 V.
+* **Corrente**: Ex: 2,3 A ou 1,8 A.
+* **Gás Refrigerante**: Tipo (ex: R600a) e Carga (ex: 45 g).
+* **Volumes (L)**: Freezer, Refrigerador e Total.
+* **Pressões**: Alta e Baixa (ex: 788/52 kPa).
+* **Potência de Degelo**: Ex: 316 W.
 
-4. Tabela Geral de Produtos e Status de Estoque
+---
 
-- Será disponibilizada uma tabela central com todos os produtos cadastrados no sistema.
-- Cada item exibirá suas informações principais, número interno, status no fluxo e indicação se o produto ainda está em estoque ou já foi liberado para saída.
-- O status do produto será atualizado automaticamente conforme avanço nas etapas do fluxo interno.
+## 4. Fluxo de Procedimentos Otimizado
 
-5. Fluxo de Avaliação e Aprovação do Produto
+### 4.1 Entrada e Triagem (Técnico)
+1.  **Captura**: Fotografia da etiqueta original; IA extrai os dados técnicos.
+2.  **Checklist de Salvado**: Registro de avarias estéticas, estado de componentes e funcionalidade.
+3.  **Fotos**: Upload obrigatório de 4 fotos (Etiqueta, Frontal Aberta, Frontal Fechada e Detalhe da Avaria).
+4.  **Status**: `EM AVALIAÇÃO`.
 
-- O sistema contará com um fluxo sequencial de validação do produto, composto pelas seguintes etapas:
-- - Leitura e cadastro inicial da etiqueta;
-- - Avaliação técnica, onde um técnico realizará o preenchimento de um checklist simples para verificar as condições do produto;
-- - Avaliação do supervisor, que validará as informações e o estado do produto;
-- - Aprovação final do gestor, responsável por liberar o produto.
-- Após a aprovação final do gestor, o produto será automaticamente marcado como liberado e removido do status de estoque disponível.
+### 4.2 Homologação e ID Ambicom (Supervisor)
+1.  **Revisão**: Supervisor valida o checklist e as fotos.
+2.  **Sequenciamento de ID**: Ao aprovar, o sistema gera o **Número de Série Ambicom** (ex: 00284-2025) baseado na numeração manual inicial definida pelo Admin.
+3.  **Etiquetagem**: Impressão da etiqueta interna conforme modelo oficial (SAC: 041-3382-5410).
+4.  **Status**: `EM ESTOQUE`.
 
-6. Acesso Multiplataforma (Desktop e Mobile)
+### 4.3 Comercial e Gestão de Pedidos (Gestor)
+1.  **Venda**: Gestor seleciona o produto pelo ID Ambicom; apenas itens `EM ESTOQUE` são visíveis.
+2.  **Baixa**: Ao finalizar a venda, o status muda para `VENDIDO` e o item sai do inventário disponível.
 
-- O sistema será desenvolvido com interface responsiva, permitindo seu uso tanto em computadores quanto em dispositivos móveis.
-- O uso em smartphones será priorizado para facilitar a leitura de etiquetas e o registro das informações diretamente no local de operação.
+---
+
+## 5. Dashboard Analítico
+Painel visual com filtros por **Semana, Mês e Ano**:
+* **KPIs de Status**: Total de produtos em Avaliação, Estoque e Vendidos.
+* **Gráfico de Tendência**: Comparativo de Entradas vs. Saídas.
+* **Filtro de Grade**: Quantidade de itens por classificação estética (A, B, C).
+* **Mix de Voltagem**: Proporção de itens 127V e 220V em estoque.
+
+---
+
+## 6. Regras de Negócio e Segurança
+* **Configuração Admin**: O administrador insere manualmente o número inicial da sequência uma única vez.
+* **Unicidade**: Bloqueio de duplicidade de Números de Série originais de fábrica.
+* **Fidelidade**: A etiqueta interna deve replicar exatamente o layout remanufaturado da Ambicom.
+
+---
 
 7. Leitura de Etiquetas
 
