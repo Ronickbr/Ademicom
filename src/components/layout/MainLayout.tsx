@@ -46,13 +46,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let timer: NodeJS.Timeout;
         if (loading) {
-            logger.info("MainLayout: Waiting for auth loading...");
             timer = setTimeout(() => {
-                logger.warn("MainLayout: Auth loading taking too long (>8s), showing recovery option");
                 setShowRecovery(true);
             }, 8000); // Show recovery option after 8 seconds
-        } else {
-            logger.info("MainLayout: Auth loaded", { role: userRole });
         }
         return () => clearTimeout(timer);
     }, [loading, userRole]);
@@ -76,7 +72,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                         {showRecovery && (
                             <button
                                 onClick={async () => {
-                                    logger.info("User clicked recovery button");
                                     await signOut();
                                     window.location.href = '/login';
                                 }}
