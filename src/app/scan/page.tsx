@@ -90,12 +90,12 @@ export default function ScanPage() {
         if (!imageSrc) return;
 
         setLabelPhoto(imageSrc);
-        toast.info("Imagem capturada. Analisando etiqueta...");
+        toast.info("Analisando etiqueta...");
 
         const data = await scanImage(imageSrc);
         if (data) {
             setOcrForm({
-                brand: data.fabricante || "",
+                brand: data.fabricante || "Electrolux",
                 model: data.modelo || "",
                 original_serial: data.numero_serie || "",
                 commercial_code: data.codigo_comercial || "",
@@ -121,12 +121,12 @@ export default function ScanPage() {
             reader.onloadend = async () => {
                 const base64String = reader.result as string;
                 setLabelPhoto(base64String);
-                toast.info("Imagem carregada. Analisando etiqueta...");
+                toast.info("Analisando arquivo...");
 
                 const data = await scanImage(base64String);
                 if (data) {
                     setOcrForm({
-                        brand: data.fabricante || "",
+                        brand: data.fabricante || "Electrolux",
                         model: data.modelo || "",
                         original_serial: data.numero_serie || "",
                         commercial_code: data.codigo_comercial || "",
@@ -165,11 +165,11 @@ export default function ScanPage() {
                             {isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
                         </div>
                         <div>
-                            <div className="text-[9px] uppercase font-black text-muted-foreground tracking-widest leading-none mb-1">Status do Scanner</div>
+                            <div className="text-[9px] uppercase font-black text-muted-foreground tracking-widest leading-none mb-1">Status da Rede</div>
                             <div className="text-lg font-black text-white italic tracking-widest">
                                 {isOnline ? "ONLINE" : "OFFLINE"}
                                 <span className={cn("text-[10px] not-italic font-medium opacity-50 ml-2", isOnline ? "text-emerald-500" : "text-red-500")}>
-                                    {isOnline ? "Conectado" : "Salvando Local"}
+                                    {isOnline ? "Conectado" : "Aviso: Sem Sincronia"}
                                 </span>
                             </div>
                         </div>
@@ -204,7 +204,7 @@ export default function ScanPage() {
                                                 ) : (
                                                     <Camera className="h-6 w-6" />
                                                 )}
-                                                {ocrLoading ? "Analisando Etiqueta..." : "Capturar Foto"}
+                                                {ocrLoading ? "Lendo dados..." : "Extrair Dados da Etiqueta"}
                                             </button>
                                         </div>
                                     </>
@@ -214,7 +214,7 @@ export default function ScanPage() {
                                             <Camera className="h-8 w-8" />
                                         </div>
                                         <h3 className="text-xl font-black text-white uppercase tracking-tight">Câmera Indisponível</h3>
-                                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Verifique as permissões do navegador ou utilize a entrada manual abaixo.</p>
+                                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Verifique as permissões do navegador ou suba uma foto da galeria.</p>
                                         <div className="flex gap-4 w-full max-w-sm">
                                             <button
                                                 onClick={() => setCameraError(false)}
@@ -284,7 +284,7 @@ export default function ScanPage() {
                 </div>
             </div>
 
-            {/* NotFound Modal (Registro de itens manuais/barcode não localizados) */}
+            {/* NotFound Modal (Legado/Fallback) */}
             {notFound && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl space-y-6 p-8 relative">
@@ -318,8 +318,8 @@ export default function ScanPage() {
                 </div>
             )}
 
-            {/* OCR Modal */}
-            {showOcrModal && ocrResult && (
+            {/* OCR Modal - Review and Confirm Registration */}
+            {showOcrModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/5 shrink-0">
@@ -328,8 +328,8 @@ export default function ScanPage() {
                                     <FileText className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-black text-white uppercase tracking-tight">Dados Extraídos</h3>
-                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Análise de etiqueta via IA</p>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-tight">Revisão de Dados</h3>
+                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Confirme as informações extraídas</p>
                                 </div>
                             </div>
                             <button
@@ -459,16 +459,18 @@ export default function ScanPage() {
                                     }
 
                                     const capturedPhotos = {
-                                        photo_model: labelPhoto, // Usamos a foto da etiqueta como foto do modelo
+                                        photo_model: labelPhoto, // Salvamos a foto da etiqueta no campo photo_model do banco
                                     };
 
-                                    await registerProduct(ocrForm, capturedPhotos);
-                                    setShowOcrModal(false);
+                                    const result = await registerProduct(ocrForm, capturedPhotos);
+                                    if (result) {
+                                        setShowOcrModal(false);
+                                    }
                                 }}
                                 className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
                             >
                                 <CheckCircle className="h-4 w-4" />
-                                Confirmar e Cadastrar
+                                Confirmar e Cadastrar no Banco
                             </button>
                         </div>
                     </div>
