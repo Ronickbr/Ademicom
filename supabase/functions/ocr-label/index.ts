@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -23,96 +24,136 @@ serve(async (req: Request) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not set");
+    const VISION_API_KEY = Deno.env.get("VISION_API_KEY");
+    if (!VISION_API_KEY) {
+      console.error("VISION_API_KEY is not set");
       return new Response(
-        JSON.stringify({ error: "Server configuration error: GEMINI_API_KEY missing" }),
+        JSON.stringify({ error: "Server configuration error: VISION_API_KEY missing" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Prepare image for Gemini (remove data:image/jpeg;base64, prefix)
+    // Prepare image for Vision API (remove data:image/jpeg;base64, prefix)
     const base64Data = image.split(",")[1] || image;
-    const mimeType = image.split(";")[0]?.split(":")[1] || "image/jpeg";
 
-    // Call Gemini Vision API
+    // Call Google Cloud Vision API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
+          requests: [
             {
-              parts: [
+              image: {
+                content: base64Data,
+              },
+              features: [
                 {
-                  text: `Você é um especialista em extração de dados de etiquetas de eletrodomésticos da Electrolux (OCR inteligente).
-                  Analise a imagem da etiqueta e extraia as seguintes informações em formato JSON estrito:
-                  - fabricante (string): Geralmente "Electrolux"
-                  - modelo (string): Localizado abaixo de "MODELO" (ex: IF56B, IM8S)
-                  - codigo_comercial (string): Localizado abaixo de "CODIGO COMERCIAL" (ex: 02469FBA)
-                  - cor (string): Localizado abaixo de "COR" (ex: 35, 30)
-                  - pnc_ml (string): Localizado abaixo de "PNC/ML" (ex: 924262803 / 02)
-                  - numero_serie (string): Localizado abaixo de "N. DE SERIE" (ex: 14201572)
-                  - data_fabricacao (string): Localizado abaixo de "DATA FABRICACAO" (formato DD/MM/AAAA)
-                  - gas_refrigerante (string): Localizado abaixo de "GAS FRIGOR." (ex: R600a)
-                  - volume_total (string): Localizado abaixo de "VOL. TOTAL" (ex: 474 L)
-                  - tensao (string): Localizado abaixo de "TENSAO" (ex: 220 V, 127 V)
-                  
-                  Retorne APENAS o JSON puro, sem blocos de código markdown ou explicações. Se um campo não for encontrado ou estiver ilegível, retorne null.`,
-                },
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data,
-                  },
+                  type: "DOCUMENT_TEXT_DETECTION",
                 },
               ],
             },
           ],
-          generationConfig: {
-            response_mime_type: "application/json"
-          }
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Gemini API Error [${response.status}]:`, errorText);
+      console.error(`Vision API Error [${response.status}]:`, errorText);
       return new Response(
-        JSON.stringify({ error: `Gemini API Error: ${response.status}`, details: errorText }),
+        JSON.stringify({ error: `Vision API Error: ${response.status}`, details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log("Gemini API successful response payload:", JSON.stringify(data).substring(0, 200) + "...");
+    const fullText = data.responses?.[0]?.fullTextAnnotation?.text || "";
 
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log("Full Text detected:", fullText);
 
-    if (!content) {
-      console.error("Gemini Response structure invalid:", data);
-      throw new Error("No content received from Gemini candidates");
+    if (!fullText) {
+      return new Response(
+        JSON.stringify({ error: "No text detected in the image" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Parse JSON directly as we requested application/json response_mime_type
-    let result;
-    try {
-      result = JSON.parse(content);
-    } catch (e: unknown) {
-      console.error("JSON parse error:", e, "Content attempted:", content);
-      // Fallback: try to extract JSON from text if it's mixed with other text
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Failed to parse AI response as JSON");
+    // Advanced Parser for Electrolux Labels
+    const result = {
+      fabricante: "Electrolux",
+      modelo: null,
+      codigo_comercial: null,
+      cor: null,
+      pnc_ml: null,
+      numero_serie: null,
+      data_fabricacao: null,
+      gas_refrigerante: null,
+      volume_total: null,
+      tensao: null,
+    };
+
+    const lines = fullText.split('\n');
+
+    // Helper to extract value after a label
+    const getValueAfter = (text: string, label: string, useNextLineIfEmpty = true) => {
+      const index = text.toUpperCase().indexOf(label.toUpperCase());
+      if (index === -1) return null;
+
+      let value = text.substring(index + label.length).trim();
+      // Remove trailing characters like ":", "-", etc.
+      value = value.replace(/^[:\-\s]+/, '').split('\n')[0].trim();
+
+      if (!value && useNextLineIfEmpty) {
+        // Check next line in full text logic... easier with lines array
+        return null;
+      }
+      return value || null;
+    };
+
+    // Improved parsing logic using lines and keywords
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].toUpperCase();
+
+      if (line.includes("MODELO")) {
+        result.modelo = lines[i + 1]?.trim() || getValueAfter(lines[i], "MODELO");
+      }
+      if (line.includes("CODIGO COMERCIAL") || line.includes("CÓDIGO COMERCIAL")) {
+        result.codigo_comercial = lines[i + 1]?.trim() || getValueAfter(lines[i], "CODIGO COMERCIAL");
+      }
+      if (line.includes("COR")) {
+        result.cor = getValueAfter(lines[i], "COR");
+      }
+      if (line.includes("PNC/ML")) {
+        result.pnc_ml = lines[i + 1]?.trim() || getValueAfter(lines[i], "PNC/ML");
+      }
+      if (line.includes("N. DE SERIE") || line.includes("N.DE SERIE")) {
+        result.numero_serie = lines[i + 1]?.trim() || getValueAfter(lines[i], "N. DE SERIE");
+      }
+      if (line.includes("DATA FABRICACAO") || line.includes("DATA FABRICAÇÃO")) {
+        result.data_fabricacao = getValueAfter(lines[i], "DATA FABRICACAO") || lines[i + 1]?.trim();
+      }
+      if (line.includes("GAS FRIGOR") || line.includes("GÁS FRIGOR")) {
+        result.gas_refrigerante = getValueAfter(lines[i], "GAS FRIGOR") || lines[i + 1]?.trim();
+      }
+      if (line.includes("VOL. TOTAL")) {
+        result.volume_total = getValueAfter(lines[i], "VOL. TOTAL") || lines[i + 1]?.trim();
+      }
+      if (line.includes("TENSAO") || line.includes("TENSÃO")) {
+        result.tensao = getValueAfter(lines[i], "TENSAO") || lines[i + 1]?.trim();
       }
     }
+
+    // Final cleanup of values
+    Object.keys(result).forEach(key => {
+      if (result[key]) {
+        // Cut at first major line break or irrelevant word
+        result[key] = result[key].split('  ')[0].trim();
+      }
+    });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
