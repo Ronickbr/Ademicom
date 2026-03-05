@@ -78,16 +78,22 @@ serve(async (req: Request) => {
     );
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error("Gemini API error:", errorData);
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Gemini API Error [${response.status}]:`, errorText);
+      return new Response(
+        JSON.stringify({ error: `Gemini API Error: ${response.status}`, details: errorText }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
+    console.log("Gemini API successful response payload:", JSON.stringify(data).substring(0, 200) + "...");
+
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
-      throw new Error("No content received from Gemini");
+      console.error("Gemini Response structure invalid:", data);
+      throw new Error("No content received from Gemini candidates");
     }
 
     // Parse JSON directly as we requested application/json response_mime_type
@@ -95,7 +101,7 @@ serve(async (req: Request) => {
     try {
       result = JSON.parse(content);
     } catch (e: unknown) {
-      console.error("JSON parse error:", e, "Content:", content);
+      console.error("JSON parse error:", e, "Content attempted:", content);
       // Fallback: try to extract JSON from text if it's mixed with other text
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -110,7 +116,7 @@ serve(async (req: Request) => {
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error processing request:", error);
+    console.error("Critical Function Error:", error);
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
