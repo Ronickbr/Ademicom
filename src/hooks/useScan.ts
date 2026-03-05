@@ -5,8 +5,6 @@ import { toast } from 'sonner'
 import { Product } from '@/lib/types'
 import { logger } from '@/lib/logger'
 import { generateNextInternalSerial } from '@/lib/id-generator'
-import Tesseract from 'tesseract.js'
-import { parseElectroluxLabel } from '@/lib/ocr-parser'
 
 const SCAN_COOLDOWN = 3000
 
@@ -78,36 +76,73 @@ export function useScan() {
   const scanImage = async (imageSrc: string) => {
     setOcrLoading(true)
     try {
-      // OCR local usando Tesseract.js (Sem custo de API)
-      const { data: { text } } = await Tesseract.recognize(
-        imageSrc,
-        'por', // Português
-        {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              // Log progress if needed
-            }
-          }
-        }
-      )
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || import.meta.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+      const model = import.meta.env.VITE_OPENROUTER_MODEL || import.meta.env.NEXT_PUBLIC_OPENROUTER_MODEL || "x-ai/grok-4.1-fast";
 
-      if (text) {
-        const parsedData = parseElectroluxLabel(text)
-        setOcrResult(parsedData)
-        toast.success("Etiqueta analisada com sucesso!")
-        return parsedData
+      if (!apiKey) {
+        throw new Error("API Key do OpenRouter não configurada.");
+      }
+
+      // Converte Base64 (com data:image/...) para apenas o conteúdo se necessário
+      const base64Image = imageSrc.includes('base64,') ? imageSrc.split('base64,')[1] : imageSrc;
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.origin,
+          "X-Title": "Scan Relatorio"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Analise esta etiqueta de produto (geralmente Electrolux) e extraia os dados técnicos. Retorne APENAS um objeto JSON com estes campos (use nulo se não encontrar): fabricante, modelo, codigo_comercial, cor, pnc_ml, numero_serie, data_fabricacao, gas_refrigerante, volume_total, tensao. Não escreva nada além do JSON."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          response_format: { type: "json_object" }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenRouter Error Details:", errorData);
+        throw new Error(`Falha na API do OpenRouter: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const content = result.choices[0]?.message?.content;
+
+      if (content) {
+        const parsedData = typeof content === 'string' ? JSON.parse(content) : content;
+        setOcrResult(parsedData);
+        toast.success("Dados extraídos com precisão via IA!");
+        return parsedData;
       } else {
-        toast.warning("Nenhum texto identificado na imagem.")
-        return null
+        toast.warning("Não foi possível processar a imagem.");
+        return null;
       }
     } catch (error) {
-      console.error("OCR Local Error:", error)
-      toast.error("Erro na leitura da etiqueta", {
-        description: "Verifique a iluminação e o foco."
-      })
-      return null
+      console.error("AI OCR Error:", error);
+      toast.error("Erro na leitura da IA", {
+        description: "Verifique sua conexão ou API Key."
+      });
+      return null;
     } finally {
-      setOcrLoading(false)
+      setOcrLoading(false);
     }
   }
 
