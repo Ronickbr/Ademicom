@@ -386,59 +386,39 @@ export default function ApprovalsPage() {
                                     <Package className="h-4 w-4 text-primary" />
                                     <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Evidências Visuais (Mandatório)</h3>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                        <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Ambiente / Produto</p>
-                                        <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
-                                            {selectedProduct.photo_product ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {selectedProduct.photo_product && (
+                                        <div className="space-y-2">
+                                            <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Ambiente / Produto</p>
+                                            <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
                                                 <img src={selectedProduct.photo_product} alt="Produto" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full opacity-20">
-                                                    <Package className="h-8 w-8 mb-2" />
-                                                    <span className="text-[10px] font-black uppercase">Sem Foto</span>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Etiqueta de Modelo</p>
-                                        <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
-                                            {selectedProduct.photo_model ? (
+                                    )}
+                                    {selectedProduct.photo_model && (
+                                        <div className="space-y-2">
+                                            <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Etiqueta de Modelo</p>
+                                            <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
                                                 <img src={selectedProduct.photo_model} alt="Modelo" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full opacity-20">
-                                                    <Package className="h-8 w-8 mb-2" />
-                                                    <span className="text-[10px] font-black uppercase">Sem Foto</span>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Número de Série</p>
-                                        <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
-                                            {selectedProduct.photo_serial ? (
+                                    )}
+                                    {selectedProduct.photo_serial && (
+                                        <div className="space-y-2">
+                                            <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Número de Série</p>
+                                            <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
                                                 <img src={selectedProduct.photo_serial} alt="Série" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full opacity-20">
-                                                    <Package className="h-8 w-8 mb-2" />
-                                                    <span className="text-[10px] font-black uppercase">Sem Foto</span>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Detalhamento Avaria</p>
-                                        <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
-                                            {selectedProduct.photo_defect ? (
+                                    )}
+                                    {selectedProduct.photo_defect && (
+                                        <div className="space-y-2">
+                                            <p className="text-[8px] font-black text-muted-foreground uppercase text-center">Detalhamento Avaria</p>
+                                            <div className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group">
                                                 <img src={selectedProduct.photo_defect} alt="Avaria" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full opacity-20">
-                                                    <AlertCircle className="h-8 w-8 mb-2" />
-                                                    <span className="text-[10px] font-black uppercase">Sem Foto</span>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 
