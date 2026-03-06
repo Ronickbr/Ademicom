@@ -130,6 +130,73 @@ export default function LoginPage() {
                     </div>
                 </div>
 
+                {/* Test Access Section */}
+                <div className="pt-4 space-y-4">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="h-px flex-1 bg-white/5" />
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] whitespace-nowrap">Ambiente de Teste</span>
+                        <div className="h-px flex-1 bg-white/5" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail("kmkz.clan@gmail.com");
+                                setPassword("Nick@11031987");
+                                toast.info("Credenciais de ADMIN carregadas");
+                            }}
+                            className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all group active:scale-95"
+                        >
+                            <ShieldCheck className="h-5 w-5 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-wider">Admin</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail("gestor@gestor.com");
+                                setPassword("gestor@1103");
+                                toast.info("Credenciais de GESTOR carregadas");
+                            }}
+                            className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all group active:scale-95"
+                        >
+                            <Zap className="h-5 w-5 text-emerald-500 mb-1 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-wider">Gestor</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail("supervisor@supervisor.com");
+                                setPassword("supervisor@1103");
+                                toast.info("Credenciais de SUPERVISOR carregadas");
+                            }}
+                            className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/30 hover:bg-amber-500/5 transition-all group active:scale-95"
+                        >
+                            <ShieldCheck className="h-5 w-5 text-amber-500 mb-1 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-wider">Supervisor</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail("tecnico@tecnico.com");
+                                setPassword("Tecnico@1103");
+                                toast.info("Credenciais de TÉCNICO carregadas");
+                            }}
+                            className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all group active:scale-95"
+                        >
+                            <Zap className="h-5 w-5 text-blue-500 mb-1 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-wider">Técnico</span>
+                        </button>
+                    </div>
+
+                    <p className="text-[8px] text-muted-foreground text-center uppercase tracking-widest opacity-40">
+                        Clique para preencher e clique em "Entrar" para validar
+                    </p>
+                </div>
+
                 {/* Footer Link */}
                 <div className="text-center">
                     <button
