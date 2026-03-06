@@ -850,7 +850,15 @@ export default function OrdersPage() {
                                                 </div>
 
                                                 {showCamera && (
-                                                    <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10 animate-in fade-in zoom-in-95 duration-300">
+                                                    <div className="fixed inset-0 z-[100] bg-black sm:relative sm:z-0 sm:aspect-video sm:rounded-xl sm:overflow-hidden sm:border sm:border-white/10 animate-in fade-in zoom-in-95 duration-300">
+                                                        {/* Fullscreen Close Button (Mobile Only) */}
+                                                        <button
+                                                            onClick={() => setShowCamera(false)}
+                                                            className="absolute top-6 right-6 z-50 h-14 w-14 rounded-2xl bg-black/60 text-white flex items-center justify-center sm:hidden backdrop-blur-xl border border-white/10 active:scale-90 transition-all font-black"
+                                                        >
+                                                            <X className="h-8 w-8" />
+                                                        </button>
+
                                                         <Webcam
                                                             ref={webcamRef}
                                                             audio={false}
@@ -858,21 +866,34 @@ export default function OrdersPage() {
                                                             videoConstraints={{ facingMode: "environment" }}
                                                             className="w-full h-full object-cover"
                                                         />
-                                                        <div className="absolute inset-0 border-2 border-primary/30 m-8 rounded-lg pointer-events-none">
-                                                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg" />
-                                                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
-                                                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
-                                                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
+
+                                                        {/* Scanning Area / Guide */}
+                                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-10">
+                                                            <div className="w-full max-w-sm aspect-square sm:aspect-video border-2 border-primary/20 rounded-3xl relative">
+                                                                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-3xl opacity-60" />
+                                                                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-3xl opacity-60" />
+                                                                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-3xl opacity-60" />
+                                                                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-3xl opacity-60" />
+
+                                                                {/* Scanning Line Animation */}
+                                                                <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-40 shadow-[0_0_15px_rgba(25,113,66,0.4)] animate-infinite-scan" />
+                                                            </div>
                                                         </div>
-                                                        <div className="absolute bottom-4 left-0 right-0 flex justify-center px-4">
+
+                                                        {/* Capture Controls */}
+                                                        <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-6 px-10 z-50 sm:bottom-6">
                                                             <button
                                                                 onClick={handleCaptureToVerify}
                                                                 disabled={ocrLoading}
-                                                                className="w-full max-w-xs h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all shadow-xl disabled:opacity-50"
+                                                                className="w-full max-w-md h-16 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-4 transition-all shadow-2xl active:scale-95 disabled:opacity-50 backdrop-blur-sm"
                                                             >
-                                                                {ocrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                                                                {ocrLoading ? "Validando..." : "Capturar e Validar"}
+                                                                {ocrLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6" />}
+                                                                {ocrLoading ? "Analisando..." : "Capturar e Validar Item"}
                                                             </button>
+
+                                                            <div className="bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 sm:hidden shadow-xl">
+                                                                <p className="text-white/70 text-[9px] uppercase font-black tracking-[0.3em] italic">Aponte para o QR Code da etiqueta</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}

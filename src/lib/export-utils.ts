@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import * as JsBarcode from 'jsbarcode';
+import * as QRCode from 'qrcode';
 
 export const exportToPDF = (title: string, headers: string[], data: (string | number | boolean | null)[][], fileName: string) => {
     const doc = new jsPDF();
@@ -39,7 +39,7 @@ export const exportToExcel = (data: Record<string, unknown>[], fileName: string)
     XLSX.writeFile(workbook, `${fileName}_${new Date().getTime()}.xlsx`);
 };
 
-export const printLabels = (products: any[]) => {
+export const printLabels = async (products: any[]) => {
     // Label dimensions: 100mm wide x 135mm tall approx for high fidelity
     const labelWidth = 100;
     const labelHeight = 135;
@@ -48,7 +48,8 @@ export const printLabels = (products: any[]) => {
         format: [labelWidth, labelHeight]
     });
 
-    products.forEach((p, index) => {
+    for (let index = 0; index < products.length; index++) {
+        const p = products[index];
         if (index > 0) doc.addPage([labelWidth, labelHeight]);
 
         // Helper to get value or empty string
@@ -99,13 +100,31 @@ export const printLabels = (products: any[]) => {
         currentY += 12;
         doc.line(8, currentY, 92, currentY); // Divider
 
-        // Row 2: NÚMERO DE SÉRIE AMBICOM
+        // Row 2: NÚMERO DE SÉRIE AMBICOM (With QR code on the left)
+        const qrData = `${val(p.internal_serial)} ${val(p.commercial_code)}`.trim();
+        if (qrData) {
+            try {
+                const qrImgData = await QRCode.toDataURL(qrData, {
+                    margin: 0,
+                    width: 100,
+                    color: {
+                        dark: "#000000",
+                        light: "#ffffff"
+                    }
+                });
+                // QR code position: left of the serial number field
+                doc.addImage(qrImgData, 'PNG', 10, currentY + 1, 15, 15);
+            } catch (err) {
+                console.error("Erro ao gerar QR Code:", err);
+            }
+        }
+
         doc.setFontSize(6);
-        doc.text("NÚMERO DE SÉRIE AMBICOM:", 50, currentY + 3, { align: 'center' });
+        doc.text("NÚMERO DE SÉRIE AMBICOM:", 59, currentY + 3, { align: 'center' });
         doc.setFontSize(18);
-        doc.text(val(p.internal_serial), 50, currentY + 9, { align: 'center' });
+        doc.text(val(p.internal_serial), 59, currentY + 9, { align: 'center' });
         doc.setFontSize(16);
-        doc.text(val(p.commercial_code), 50, currentY + 15, { align: 'center' });
+        doc.text(val(p.commercial_code), 59, currentY + 15, { align: 'center' });
 
         currentY += 17;
         doc.line(8, currentY, 92, currentY); // Divider
@@ -214,36 +233,14 @@ export const printLabels = (products: any[]) => {
         currentY += 12;
         doc.line(8, currentY, 92, currentY); // Bottom grid line
 
-        // --- Barcode Section (internal_serial + commercial_code) ---
-        const barcodeData = `${val(p.internal_serial)}${val(p.commercial_code)}`.trim();
-        if (barcodeData) {
-            try {
-                const canvas = document.createElement('canvas');
-                // Handle different import behaviors (CJS vs ESM)
-                const barcodeFn = (JsBarcode as any).default || JsBarcode;
-                barcodeFn(canvas, barcodeData, {
-                    format: "CODE128",
-                    width: 2,
-                    height: 50,
-                    displayValue: true,
-                    fontSize: 16,
-                    margin: 0,
-                    background: "#ffffff"
-                });
-                const imgData = canvas.toDataURL('image/png');
-                // Posicionamento estratégico na base da etiqueta
-                doc.addImage(imgData, 'PNG', 10, currentY + 2, 80, 16);
-            } catch (err) {
-                console.error("Erro ao gerar código de barras:", err);
-            }
-        }
+        // --- QR Code was added above in Row 2 ---
 
         // Vertical Border edges (Extended)
         doc.line(8, 28, 8, currentY + 19);
         doc.line(92, 28, 92, currentY + 19);
         doc.line(8, currentY + 19, 92, currentY + 19); // Outer bottom line
 
-    });
+    }
 
     const timestamp = new Date().getTime();
     doc.save(`etiquetas_ambicom_${timestamp}.pdf`);

@@ -317,7 +317,7 @@ export default function InventoryPage() {
                                     onClick={async () => {
                                         const { printLabels } = await import("@/lib/export-utils");
                                         const selectedProducts = products.filter(p => selectedIds.has(p.id));
-                                        printLabels(selectedProducts);
+                                        await printLabels(selectedProducts);
                                     }}
                                     className="h-10 px-4 bg-primary text-white rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 animate-in zoom-in mr-1"
                                 >
