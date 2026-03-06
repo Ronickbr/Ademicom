@@ -12,7 +12,11 @@ import {
     Package,
     Calendar,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    ShieldCheck,
+    Ban,
+    Check,
+    Barcode
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -43,6 +47,9 @@ export default function OrdersPage() {
     const [selectedClient, setSelectedClient] = useState("");
     const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [scanInput, setScanInput] = useState("");
+    const [verifiedSerials, setVerifiedSerials] = useState<string[]>([]);
+    const scannerRef = React.useRef<HTMLInputElement>(null);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
@@ -140,7 +147,7 @@ export default function OrdersPage() {
         setShowAddModal(true);
         const { data: cData } = await supabase.from("clients").select("*");
         setClients((cData as Client[]) || []);
-        const { data: pData } = await supabase.from("products").select("*").in("status", ["EM ESTOQUE"]);
+        const { data: pData } = await supabase.from("products").select("*").eq("status", "EM ESTOQUE").is("order_id", null);
         setAvailableProducts((pData as Product[]) || []);
     };
 
@@ -164,15 +171,27 @@ export default function OrdersPage() {
 
             if (orderError) throw orderError;
 
+            // 2. Link products to order in products table (optional, but code uses it)
             const { error: productError } = await supabase
                 .from("products")
                 .update({
-                    order_id: (orderData as Order).id,
-                    status: "VENDIDO"
+                    order_id: (orderData as Order).id
                 })
                 .in("id", selectedProducts);
 
             if (productError) throw productError;
+
+            // 3. Insert into order_items table (required for details view)
+            const orderItems = selectedProducts.map(productId => ({
+                order_id: (orderData as Order).id,
+                product_id: productId
+            }));
+
+            const { error: itemsError } = await supabase
+                .from("order_items")
+                .insert(orderItems);
+
+            if (itemsError) throw itemsError;
 
             toast.success("Pedido criado com sucesso!", {
                 description: `${selectedProducts.length} produtos foram vinculados.`
@@ -191,6 +210,7 @@ export default function OrdersPage() {
 
     const handleViewOrder = async (order: Order) => {
         setSelectedOrder(order);
+        setVerifiedSerials([]);
         setShowDetailsModal(true);
         setIsFetchingDetails(true);
         try {
@@ -209,11 +229,118 @@ export default function OrdersPage() {
 
             if (error) throw error;
             setSelectedOrder(data as Order);
+
+            // Auto-focus scanner input
+            setTimeout(() => scannerRef.current?.focus(), 500);
         } catch (error) {
             console.error("Erro ao buscar detalhes do pedido:", error);
             toast.error("Erro ao carregar detalhes do pedido");
         } finally {
             setIsFetchingDetails(false);
+        }
+    };
+
+    const handleScanProduct = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedOrder || !scanInput) return;
+
+        const input = scanInput.trim().toUpperCase();
+
+        // Find if this serial exists in the order
+        const foundItem = selectedOrder.order_items?.find(
+            item => item.products?.internal_serial?.toUpperCase() === input
+        );
+
+        if (foundItem) {
+            if (verifiedSerials.includes(input)) {
+                toast.warning("Produto já conferido!");
+            } else {
+                setVerifiedSerials(prev => [...prev, input]);
+                toast.success("Produto conferido!", {
+                    description: foundItem.products?.model || "Item validado"
+                });
+            }
+        } else {
+            toast.error("Produto não pertence a este pedido!");
+        }
+
+        setScanInput("");
+        scannerRef.current?.focus();
+    };
+
+    const handleCancelOrder = async (order: Order) => {
+        if (!confirm("Deseja realmente cancelar este pedido? Os produtos voltarão ao estoque.")) return;
+
+        setIsSaving(true);
+        try {
+            // 1. Update order status
+            const { error: orderError } = await supabase
+                .from("orders")
+                .update({ status: "CANCELADO" })
+                .eq("id", order.id);
+
+            if (orderError) throw orderError;
+
+            // 2. Fetch product IDs from this order to clear order_id
+            // We can do this via products table directly where order_id = order.id
+            const { error: productError } = await supabase
+                .from("products")
+                .update({ order_id: null })
+                .eq("order_id", order.id);
+
+            if (productError) throw productError;
+
+            toast.warning("Pedido cancelado com sucesso!");
+            setShowDetailsModal(false);
+            fetchOrders();
+        } catch (error) {
+            toast.error("Erro ao cancelar pedido");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleFinalizeOrder = async (order: Order) => {
+        // Enforce verification for PENDENTE orders
+        const totalItems = order.order_items?.length || 0;
+        if (verifiedSerials.length < totalItems) {
+            toast.error("Conferência incompleta!", {
+                description: `Faltam ${totalItems - verifiedSerials.length} produtos para conferir via scanner.`
+            });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            // 1. Update order status
+            const { error: orderError } = await supabase
+                .from("orders")
+                .update({ status: "CONCLUIDO" })
+                .eq("id", order.id);
+
+            if (orderError) throw orderError;
+
+            // 2. Fetch product IDs from this order to update status
+            const productIds = order.order_items?.map(item => item.products?.id).filter(Boolean);
+
+            if (productIds && productIds.length > 0) {
+                const { error: productError } = await supabase
+                    .from("products")
+                    .update({ status: "VENDIDO" })
+                    .in("id", productIds);
+                if (productError) throw productError;
+            }
+
+            toast.success("Pedido finalizado!", {
+                description: `${productIds?.length || 0} produtos marcados como vendidos.`
+            });
+            setShowDetailsModal(false);
+            fetchOrders();
+        } catch (error) {
+            const err = error as Error;
+            toast.error("Erro ao finalizar pedido", { description: err.message });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -640,32 +767,77 @@ export default function OrdersPage() {
 
                                     {/* Products List */}
                                     <div className="space-y-4">
-                                        <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
-                                            <Package className="h-3 w-3" />
-                                            Itens do Pedido ({selectedOrder.order_items?.length || 0})
-                                        </h3>
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+                                                <Package className="h-3 w-3" />
+                                                Itens do Pedido ({selectedOrder.order_items?.length || 0})
+                                            </h3>
+                                            {selectedOrder.status === "PENDENTE" && (
+                                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                                    Conferência: {verifiedSerials.length} de {selectedOrder.order_items?.length || 0}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {selectedOrder.status === "PENDENTE" && (
+                                            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6">
+                                                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                    <Barcode className="h-6 w-6" />
+                                                </div>
+                                                <div className="flex-1 w-full">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2 italic">Aguardando Scanner de ID Interno...</p>
+                                                    <form onSubmit={handleScanProduct} className="relative">
+                                                        <input
+                                                            ref={scannerRef}
+                                                            type="text"
+                                                            value={scanInput}
+                                                            onChange={(e) => setScanInput(e.target.value)}
+                                                            placeholder="Escaneie o ID Interno do produto..."
+                                                            className="w-full h-14 bg-black/40 border border-white/10 rounded-xl px-6 text-sm text-white placeholder:text-muted-foreground/30 focus:border-primary/50 transition-all outline-none"
+                                                        />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                                            <span className="text-[9px] font-bold text-muted-foreground/20 bg-white/5 px-2 py-1 rounded">ENTER PARA VALIDAR</span>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="glass-card rounded-2xl border border-white/5 p-0 overflow-hidden">
                                             <table className="w-full text-left text-sm">
                                                 <thead className="bg-white/5 text-[9px] font-black text-muted-foreground uppercase tracking-widest border-b border-white/5">
                                                     <tr>
                                                         <th className="px-6 py-4">Produto</th>
-                                                        <th className="px-6 py-4">S/N Interno</th>
+                                                        <th className="px-6 py-4">ID Interno</th>
                                                         <th className="px-6 py-4">S/N Original</th>
                                                         <th className="px-6 py-4">Marca</th>
+                                                        <th className="px-6 py-4 text-right">Conferência</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
-                                                    {selectedOrder.order_items?.map((item: any) => (
-                                                        <tr key={item.id} className="hover:bg-white/[0.01]">
-                                                            <td className="px-6 py-4 font-bold text-white">{item.products?.model || "N/A"}</td>
-                                                            <td className="px-6 py-4 font-mono text-xs text-primary">{item.products?.internal_serial || "N/A"}</td>
-                                                            <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{item.products?.original_serial || "N/A"}</td>
-                                                            <td className="px-6 py-4 text-xs font-bold uppercase tracking-wider">{item.products?.brand || "N/A"}</td>
-                                                        </tr>
-                                                    ))}
+                                                    {selectedOrder.order_items?.map((item: any) => {
+                                                        const isVerified = verifiedSerials.includes(item.products?.internal_serial?.toUpperCase());
+                                                        return (
+                                                            <tr key={item.id} className={cn("transition-colors", isVerified ? "bg-emerald-500/5" : "hover:bg-white/[0.01]")}>
+                                                                <td className="px-6 py-4 font-bold text-white">{item.products?.model || "N/A"}</td>
+                                                                <td className="px-6 py-4 font-mono text-xs text-primary">{item.products?.internal_serial || "N/A"}</td>
+                                                                <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{item.products?.original_serial || "N/A"}</td>
+                                                                <td className="px-6 py-4 text-xs font-bold uppercase tracking-wider">{item.products?.brand || "N/A"}</td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    {isVerified ? (
+                                                                        <span className="inline-flex items-center gap-1.5 text-emerald-500 font-bold text-[10px] uppercase tracking-wider">
+                                                                            <Check className="h-3 w-3" /> OK
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-muted-foreground/30 font-bold text-[10px] uppercase tracking-wider italic">Pendente</span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                     {(!selectedOrder.order_items || selectedOrder.order_items.length === 0) && (
                                                         <tr>
-                                                            <td colSpan={4} className="px-6 py-10 text-center text-muted-foreground italic">Nenhum item vinculado a este pedido.</td>
+                                                            <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground italic">Nenhum item vinculado a este pedido.</td>
                                                         </tr>
                                                     )}
                                                 </tbody>
@@ -677,7 +849,7 @@ export default function OrdersPage() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex gap-4 shrink-0">
+                        <div className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex flex-col sm:flex-row gap-4 shrink-0">
                             <button
                                 onClick={() => handleExportPDF(selectedOrder)}
                                 className="flex-1 h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3 border border-white/10"
@@ -685,9 +857,32 @@ export default function OrdersPage() {
                                 <FileDown className="h-5 w-5" />
                                 Exportar PDF
                             </button>
+
+                            {selectedOrder.status === "PENDENTE" && (
+                                <button
+                                    onClick={() => handleFinalizeOrder(selectedOrder)}
+                                    disabled={isSaving}
+                                    className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-3 disabled:grayscale disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
+                                    {verifiedSerials.length < (selectedOrder.order_items?.length || 0) ? `Faltam ${(selectedOrder.order_items?.length || 0) - verifiedSerials.length} Itens` : "Finalizar envio do pedido"}
+                                </button>
+                            )}
+
+                            {selectedOrder.status === "PENDENTE" && (
+                                <button
+                                    onClick={() => handleCancelOrder(selectedOrder)}
+                                    disabled={isSaving}
+                                    className="flex-1 h-14 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border border-red-500/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                                >
+                                    <Ban className="h-5 w-5" />
+                                    Cancelar Envio
+                                </button>
+                            )}
+
                             <button
                                 onClick={() => setShowDetailsModal(false)}
-                                className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                                className="flex-1 h-14 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
                             >
                                 Fechar Detalhes
                             </button>

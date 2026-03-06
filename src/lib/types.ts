@@ -124,7 +124,11 @@ export interface Order {
     order_items?: {
         id: string;
         products: {
+            id: string;
             model: string | null;
+            brand?: string | null;
+            internal_serial?: string | null;
+            original_serial?: string | null;
         } | null;
     }[];
 }

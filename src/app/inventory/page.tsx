@@ -59,11 +59,36 @@ export default function InventoryPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("EM ESTOQUE");
+    const [brandFilter, setBrandFilter] = useState("ALL");
+    const [voltageFilter, setVoltageFilter] = useState("ALL");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+    const [availableVoltages, setAvailableVoltages] = useState<string[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
     const [page, setPage] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const PAGE_SIZE = 50;
 
+    // Fetch unique values for filters
+    useEffect(() => {
+        const fetchFilters = async () => {
+            const { data } = await supabase.from('products').select('brand, voltage');
+            if (data) {
+                const brands = Array.from(new Set(data.map(p => p.brand))).filter(Boolean) as string[];
+                const voltages = Array.from(new Set(data.map(p => p.voltage))).filter(Boolean) as string[];
+                setAvailableBrands(brands.sort());
+                setAvailableVoltages(voltages.sort());
+            }
+        };
+        fetchFilters();
+    }, []);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setPage(0);
+    }, [searchTerm, statusFilter, brandFilter, voltageFilter, startDate, endDate]);
     const [selectedProduct, setSelectedProduct] = useState<InventoryProduct | null>(null);
     const [history, setHistory] = useState<ProductLog[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -81,7 +106,7 @@ export default function InventoryPage() {
             fetchInventory();
         }, 500);
         return () => clearTimeout(timer);
-    }, [page, searchTerm, statusFilter]);
+    }, [page, searchTerm, statusFilter, brandFilter, voltageFilter, startDate, endDate]);
 
     const fetchInventory = async () => {
         setIsLoading(true);
@@ -100,6 +125,25 @@ export default function InventoryPage() {
 
             if (statusFilter !== "ALL") {
                 query = query.eq('status', statusFilter);
+            }
+
+            if (brandFilter !== "ALL") {
+                query = query.eq('brand', brandFilter);
+            }
+
+            if (voltageFilter !== "ALL") {
+                query = query.eq('voltage', voltageFilter);
+            }
+
+            if (startDate) {
+                query = query.gte('created_at', new Date(startDate).toISOString());
+            }
+
+            if (endDate) {
+                // Set to end of day
+                const endOfDay = new Date(endDate);
+                endOfDay.setHours(23, 59, 59, 999);
+                query = query.lte('created_at', endOfDay.toISOString());
             }
 
             const result = await Promise.race([
@@ -300,30 +344,107 @@ export default function InventoryPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-neutral-900/40 p-2 sm:p-2 rounded-2xl border border-white/5 mx-2 sm:mx-0">
-                    <div className="md:col-span-3 relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Rastrear por ID, Marca, Modelo ou Serial..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full h-12 sm:h-14 bg-transparent border-none rounded-xl pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-white"
-                        />
-                    </div>
-                    <div className="relative">
-                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        <select
-                            value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
-                            className="w-full h-12 sm:h-14 bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer text-white font-bold"
+                <div className="bg-neutral-900/40 p-2 rounded-2xl border border-white/5 mx-2 sm:mx-0 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="md:col-span-2 relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Rastrear por ID, Marca, Modelo ou Serial..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full h-12 sm:h-14 bg-transparent border-none rounded-xl pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-white"
+                            />
+                        </div>
+                        <div className="relative">
+                            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <select
+                                value={statusFilter}
+                                onChange={e => setStatusFilter(e.target.value)}
+                                className="w-full h-12 sm:h-14 bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer text-white font-bold"
+                            >
+                                <option value="ALL" className="bg-neutral-900">Todos os Status</option>
+                                {Object.entries(statusConfig).map(([val, conf]) => (
+                                    <option key={val} value={val} className="bg-neutral-900">{conf.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={cn(
+                                "flex items-center justify-center gap-2 h-12 sm:h-14 rounded-xl border transition-all text-xs font-black uppercase tracking-widest",
+                                showFilters ? "bg-primary text-white border-primary" : "bg-white/5 border-white/10 text-muted-foreground"
+                            )}
                         >
-                            <option value="ALL" className="bg-neutral-900">Todos os Status</option>
-                            {Object.entries(statusConfig).map(([val, conf]) => (
-                                <option key={val} value={val} className="bg-neutral-900">{conf.label}</option>
-                            ))}
-                        </select>
+                            <Filter className="h-4 w-4" />
+                            {showFilters ? "Ocultar Filtros" : "Mais Filtros"}
+                        </button>
                     </div>
+
+                    {showFilters && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border-t border-white/5 animate-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Fabricante</label>
+                                <select
+                                    value={brandFilter}
+                                    onChange={e => setBrandFilter(e.target.value)}
+                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                >
+                                    <option value="ALL" className="bg-neutral-900">Todas as Marcas</option>
+                                    {availableBrands.map(b => (
+                                        <option key={b} value={b} className="bg-neutral-900">{b}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Voltagem</label>
+                                <select
+                                    value={voltageFilter}
+                                    onChange={e => setVoltageFilter(e.target.value)}
+                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                >
+                                    <option value="ALL" className="bg-neutral-900">Todas as Voltagens</option>
+                                    {availableVoltages.map(v => (
+                                        <option key={v} value={v} className="bg-neutral-900">{v}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Deste: (Início)</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={e => setStartDate(e.target.value)}
+                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest ml-1">Até: (Fim)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={e => setEndDate(e.target.value)}
+                                        className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold flex-1"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            setBrandFilter("ALL");
+                                            setVoltageFilter("ALL");
+                                            setStartDate("");
+                                            setEndDate("");
+                                            setStatusFilter("ALL");
+                                            setSearchTerm("");
+                                        }}
+                                        className="h-12 w-12 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all"
+                                        title="Limpar Filtros"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {isLoading ? (

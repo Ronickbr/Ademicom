@@ -55,14 +55,17 @@ export const printLabels = (products: any[]) => {
     products.forEach((p, index) => {
         if (index > 0) doc.addPage([labelWidth, labelHeight]);
 
+        // Helper to get value or empty string
+        const val = (v: any) => v || "";
+
         // --- Header Section ---
         doc.setFont("helvetica", "bold");
         doc.setFontSize(22);
         doc.text("Ambicom", 8, 12);
 
-        // Subtitle (Right aligned)
+        // Subtitle (Right aligned block)
         doc.setFontSize(7);
-        doc.setFont("helvetica", "black");
+        doc.setFont("helvetica", "bold");
         const subtitleX = 68;
         doc.text("PRODUTO", subtitleX + 5, 10);
         doc.text("REMANUFATURADO", subtitleX, 13);
@@ -81,24 +84,21 @@ export const printLabels = (products: any[]) => {
 
         // --- Grid Section ---
         let currentY = 28;
-        const colWidth = labelWidth / 3;
+        doc.setLineWidth(0.4);
 
         // Row 1: MODELO | VOLTAGEM
-        doc.setLineWidth(0.4);
         doc.line(8, currentY, 92, currentY); // Horizontal Top
-
-        // Vertical Divider
-        doc.line(45, currentY, 45, currentY + 12);
+        doc.line(45, currentY, 45, currentY + 12); // Vertical Divider
 
         doc.setFontSize(6.5);
         doc.text("MODELO", 22, currentY + 4, { align: 'center' });
         doc.setFontSize(18);
-        doc.text(p.model || "-", 22, currentY + 10, { align: 'center' });
+        doc.text(val(p.model), 22, currentY + 10, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("VOLTAGEM", 68.5, currentY + 4, { align: 'center' });
         doc.setFontSize(18);
-        doc.text(p.voltage || "-", 68.5, currentY + 10, { align: 'center' });
+        doc.text(val(p.voltage), 68.5, currentY + 10, { align: 'center' });
 
         currentY += 12;
         doc.line(8, currentY, 92, currentY); // Divider
@@ -107,22 +107,22 @@ export const printLabels = (products: any[]) => {
         doc.setFontSize(6);
         doc.text("NÚMERO DE SÉRIE AMBICOM:", 50, currentY + 3, { align: 'center' });
         doc.setFontSize(18);
-        doc.text(p.internal_serial || "-", 50, currentY + 9, { align: 'center' });
+        doc.text(val(p.internal_serial), 50, currentY + 9, { align: 'center' });
         doc.setFontSize(16);
-        doc.text(p.original_serial || "-", 50, currentY + 15, { align: 'center' });
+        doc.text(val(p.commercial_code), 50, currentY + 15, { align: 'center' });
 
         currentY += 17;
         doc.line(8, currentY, 92, currentY); // Divider
 
-        // Row 3: PNC/ML | 60 Hz
+        // Row 3: PNC/ML | Frequência
         doc.line(60, currentY, 60, currentY + 10); // Vertical
         doc.setFontSize(6.5);
         doc.text("PNC/ML", 34, currentY + 2.5, { align: 'center' });
         doc.setFontSize(18);
-        doc.text(p.pnc_ml || "-", 34, currentY + 8.5, { align: 'center' });
+        doc.text(val(p.pnc_ml), 34, currentY + 8.5, { align: 'center' });
 
         doc.setFontSize(16);
-        doc.text("60 Hz", 76, currentY + 7.5, { align: 'center' });
+        doc.text(val(p.frequency) || "60 Hz", 76, currentY + 7.5, { align: 'center' });
 
         currentY += 10;
         doc.line(8, currentY, 92, currentY); // Divider
@@ -134,17 +134,17 @@ export const printLabels = (products: any[]) => {
         doc.setFontSize(6.5);
         doc.text("GÁS FRIGOR.", 21, currentY + 2.5, { align: 'center' });
         doc.setFontSize(12);
-        doc.text(p.refrigerant_gas || "R600a", 21, currentY + 8, { align: 'center' });
+        doc.text(val(p.refrigerant_gas), 21, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("CARGA GÁS", 47, currentY + 2.5, { align: 'center' });
         doc.setFontSize(16);
-        doc.text(p.gas_charge || "-", 47, currentY + 8, { align: 'center' });
+        doc.text(val(p.gas_charge), 47, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("COMPRESSOR", 76, currentY + 2.5, { align: 'center' });
         doc.setFontSize(10);
-        doc.text(p.compressor || "EMBRACO", 76, currentY + 8, { align: 'center' });
+        doc.text(val(p.compressor), 76, currentY + 8, { align: 'center' });
 
         currentY += 12;
         doc.line(8, currentY, 92, currentY);
@@ -156,17 +156,17 @@ export const printLabels = (products: any[]) => {
         doc.setFontSize(6.5);
         doc.text("VOL. FREEZER", 21, currentY + 2.5, { align: 'center' });
         doc.setFontSize(12);
-        doc.text(p.volume_freezer || "-", 21, currentY + 8, { align: 'center' });
+        doc.text(val(p.volume_freezer), 21, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("VOL. REFRIG.", 47, currentY + 2.5, { align: 'center' });
         doc.setFontSize(12);
-        doc.text(p.volume_refrigerator || "-", 47, currentY + 8, { align: 'center' });
+        doc.text(val(p.volume_refrigerator), 47, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("VOLUME TOTAL", 76, currentY + 2.5, { align: 'center' });
         doc.setFontSize(12);
-        doc.text(p.volume_total || "-", 76, currentY + 8, { align: 'center' });
+        doc.text(val(p.volume_total), 76, currentY + 8, { align: 'center' });
 
         currentY += 12;
         doc.line(8, currentY, 92, currentY);
@@ -178,19 +178,20 @@ export const printLabels = (products: any[]) => {
         doc.setFontSize(6.5);
         doc.text("PRESSÃO ALTA", 21, currentY + 2.5, { align: 'center' });
         doc.setFontSize(9);
-        // Assuming pressure_high_low contains both or just use placeholder pattern from image
-        const pressures = (p.pressure_high_low || "(788/52)kpa").split(' ');
-        doc.text(pressures[0] || "-", 21, currentY + 8, { align: 'center' });
+
+        // Handle pressure splitting or custom logic
+        const pressures = (p.pressure_high_low || "").split('/');
+        doc.text(val(pressures[0]), 21, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("PRESSÃO BAIXA", 47, currentY + 2.5, { align: 'center' });
         doc.setFontSize(9);
-        doc.text(pressures[1] || "(100/-7,09)ps/g", 47, currentY + 8, { align: 'center' });
+        doc.text(val(pressures[1]), 47, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("CAPAC. CONG.", 76, currentY + 2.5, { align: 'center' });
         doc.setFontSize(10);
-        doc.text(p.freezing_capacity || "9,0 kg/24h", 76, currentY + 8, { align: 'center' });
+        doc.text(val(p.freezing_capacity), 76, currentY + 8, { align: 'center' });
 
         currentY += 12;
         doc.line(8, currentY, 92, currentY);
@@ -202,17 +203,17 @@ export const printLabels = (products: any[]) => {
         doc.setFontSize(6.5);
         doc.text("CORRENTE", 21, currentY + 2.5, { align: 'center' });
         doc.setFontSize(12);
-        doc.text(p.electric_current || "-", 21, currentY + 8, { align: 'center' });
+        doc.text(val(p.electric_current), 21, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("POT. DEGELO", 47, currentY + 2.5, { align: 'center' });
         doc.setFontSize(12);
-        doc.text(p.defrost_power || "-", 47, currentY + 8, { align: 'center' });
+        doc.text(val(p.defrost_power), 47, currentY + 8, { align: 'center' });
 
         doc.setFontSize(6.5);
         doc.text("GRADE", 76, currentY + 2.5, { align: 'center' });
         doc.setFontSize(9);
-        doc.text(p.market_class || "-", 76, currentY + 8, { align: 'center' });
+        doc.text("", 76, currentY + 8, { align: 'center' }); // Leave blank per user request
 
         currentY += 12;
         doc.line(8, currentY, 92, currentY); // Bottom line

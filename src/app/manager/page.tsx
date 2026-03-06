@@ -70,21 +70,21 @@ export default function ManagerDashboard() {
             // Fetch Stats efficiently using count
             const queries = [
                 supabase.from("products").select("*", { count: 'exact', head: true }), // Total
-                supabase.from("products").select("*", { count: 'exact', head: true }).in('status', ['LIBERADO', 'VENDIDO']), // Homologados
-                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'CADASTRO'), // Cadastro
-                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'EM AVALIAÇÃO'), // Em Avaliação
-                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'EM ESTOQUE'), // Em Estoque
-                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'VENDIDO'), // Vendidos
+                supabase.from("products").select("*", { count: 'exact', head: true }).in('status', ['EM ESTOQUE', 'VENDIDO']), // 1: Homologados
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'CADASTRO'), // 2: Cadastro
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'EM AVALIAÇÃO'), // 3: Em Avaliação
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'EM ESTOQUE'), // 4: Em Estoque
+                supabase.from("products").select("*", { count: 'exact', head: true }).eq('status', 'VENDIDO'), // 5: Vendidos
             ];
 
             const results = await Promise.all(queries);
 
             const newStats = {
                 total: results[0].count || 0,
-                cadastro: results[1].count || 0,
-                avaliacao: results[2].count || 0,
-                estoque: results[3].count || 0,
-                vendidos: results[4].count || 0
+                cadastro: results[2].count || 0,
+                avaliacao: results[3].count || 0,
+                estoque: results[4].count || 0,
+                vendidos: results[5].count || 0,
             };
             setStats(newStats);
 
