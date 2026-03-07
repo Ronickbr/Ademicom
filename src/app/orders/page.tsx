@@ -24,9 +24,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
-import Webcam from "react-webcam";
 import { useScan } from "@/hooks/useScan";
 import { Order, Client, Product } from "@/lib/types";
+import { Html5Qrcode } from "html5-qrcode";
 
 const statusStyles = {
     PENDENTE: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
@@ -59,8 +59,119 @@ export default function OrdersPage() {
 
     // Camera Scanning States
     const { scanImage, ocrLoading } = useScan();
-    const webcamRef = React.useRef<Webcam>(null);
     const [showCamera, setShowCamera] = useState(false);
+
+    useEffect(() => {
+        let html5QrCode: Html5Qrcode | null = null;
+        let isChecking = false;
+
+        const startScanner = async () => {
+            if (isChecking) return;
+            isChecking = true;
+
+            try {
+                // Ensure DOM element is ready
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const element = document.getElementById("reader");
+                if (!element) return;
+
+                html5QrCode = new Html5Qrcode("reader");
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                };
+
+                // Try to get cameras first to ensure permissions
+                const cameras = await Html5Qrcode.getCameras();
+                if (cameras && cameras.length > 0) {
+                    // Prefer back camera
+                    const backCamera = cameras.find(c =>
+                        c.label.toLowerCase().includes("back") ||
+                        c.label.toLowerCase().includes("traseira") ||
+                        c.label.toLowerCase().includes("rear")
+                    );
+                    const cameraId = backCamera ? backCamera.id : cameras[0].id;
+
+                    await html5QrCode.start(
+                        cameraId,
+                        config,
+                        (decodedText) => {
+                            handleScanCode(decodedText);
+                            setShowCamera(false);
+                        },
+                        (errorMessage) => { }
+                    );
+                } else {
+                    // Fallback to constraints
+                    await html5QrCode.start(
+                        { facingMode: "environment" },
+                        config,
+                        (decodedText) => {
+                            handleScanCode(decodedText);
+                            setShowCamera(false);
+                        },
+                        (errorMessage) => { }
+                    );
+                }
+            } catch (err) {
+                console.error("Erro ao iniciar câmera:", err);
+                const errorStr = String(err).toLowerCase();
+
+                if (!window.isSecureContext) {
+                    toast.error("Câmera bloqueada por segurança (HTTP).", {
+                        description: "O navegador exige HTTPS para acessar a câmera em outros dispositivos. Use o endereço IP com HTTPS ou localhost."
+                    });
+                } else if (errorStr.includes("notallowed") || errorStr.includes("permission denied")) {
+                    toast.error("Permissão da Câmera Negada.", {
+                        description: "Por favor, autorize o acesso à câmera nas configurações do navegador para este site."
+                    });
+                } else {
+                    toast.error("Erro ao acessar câmera.", {
+                        description: "Certifique-se de que nenhuma outra aplicação esteja usando a câmera."
+                    });
+                }
+                setShowCamera(false);
+            } finally {
+                isChecking = false;
+            }
+        };
+
+        if (showCamera) {
+            startScanner();
+        }
+
+        return () => {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(e => console.error("Error stopping scanner", e));
+            }
+        };
+    }, [showCamera]);
+
+    const handleScanCode = (code: string) => {
+        if (!selectedOrder || !code) return;
+        const input = code.trim().toUpperCase();
+
+        const foundItem = selectedOrder.order_items?.find(
+            item => item.products?.internal_serial?.toUpperCase() === input ||
+                item.products?.original_serial?.toUpperCase() === input
+        );
+
+        if (foundItem) {
+            const internal = foundItem.products?.internal_serial?.toUpperCase() || "";
+            if (verifiedSerials.includes(internal)) {
+                toast.warning("Produto já conferido!");
+            } else {
+                setVerifiedSerials(prev => [...prev, internal]);
+                toast.success("Produto conferido!", {
+                    description: foundItem.products?.model || "Item validado"
+                });
+            }
+        } else {
+            toast.error("Produto não pertence a este pedido!");
+        }
+    };
 
     const isAuthorized = profile?.role === "GESTOR" || profile?.role === "ADMIN";
 
@@ -248,44 +359,7 @@ export default function OrdersPage() {
         }
     };
 
-    const handleCaptureToVerify = async () => {
-        if (!webcamRef.current) return;
-        const imageSrc = webcamRef.current.getScreenshot();
-        if (!imageSrc) return;
 
-        toast.info("Analisando etiqueta...");
-        const data = await scanImage(imageSrc);
-
-        if (data) {
-            // Check both internal serial and original serial
-            const serialToCheck = (data.internal_serial || data.numero_serie || "").toUpperCase();
-
-            if (!serialToCheck) {
-                toast.error("Não foi possível identificar o serial na etiqueta.");
-                return;
-            }
-
-            const foundItem = selectedOrder?.order_items?.find(
-                item => item.products?.internal_serial?.toUpperCase() === serialToCheck ||
-                    item.products?.original_serial?.toUpperCase() === serialToCheck
-            );
-
-            if (foundItem) {
-                const internal = foundItem.products?.internal_serial?.toUpperCase() || "";
-                if (verifiedSerials.includes(internal)) {
-                    toast.warning("Produto já conferido!");
-                } else {
-                    setVerifiedSerials(prev => [...prev, internal]);
-                    toast.success("Produto conferido via Câmera!", {
-                        description: foundItem.products?.model || "Item validado"
-                    });
-                    setShowCamera(false);
-                }
-            } else {
-                toast.error(`Serial ${serialToCheck} não pertence a este pedido!`);
-            }
-        }
-    };
 
     const handleScanProduct = (e: React.FormEvent) => {
         e.preventDefault();
@@ -850,50 +924,20 @@ export default function OrdersPage() {
                                                 </div>
 
                                                 {showCamera && (
-                                                    <div className="fixed inset-0 z-[100] bg-black sm:relative sm:z-0 sm:aspect-video sm:rounded-xl sm:overflow-hidden sm:border sm:border-white/10 animate-in fade-in zoom-in-95 duration-300">
-                                                        {/* Fullscreen Close Button (Mobile Only) */}
-                                                        <button
-                                                            onClick={() => setShowCamera(false)}
-                                                            className="absolute top-6 right-6 z-50 h-14 w-14 rounded-2xl bg-black/60 text-white flex items-center justify-center sm:hidden backdrop-blur-xl border border-white/10 active:scale-90 transition-all font-black"
-                                                        >
-                                                            <X className="h-8 w-8" />
-                                                        </button>
+                                                    <div className="fixed inset-0 z-[100] bg-black sm:relative sm:z-0 sm:aspect-video sm:rounded-xl sm:overflow-hidden sm:border sm:border-white/10 animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center justify-center p-4">
+                                                        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 relative">
+                                                            <div id="reader" className="w-full"></div>
 
-                                                        <Webcam
-                                                            ref={webcamRef}
-                                                            audio={false}
-                                                            screenshotFormat="image/jpeg"
-                                                            videoConstraints={{ facingMode: "environment" }}
-                                                            className="w-full h-full object-cover"
-                                                        />
-
-                                                        {/* Scanning Area / Guide */}
-                                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-10">
-                                                            <div className="w-full max-w-sm aspect-square sm:aspect-video border-2 border-primary/20 rounded-3xl relative">
-                                                                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-3xl opacity-60" />
-                                                                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-3xl opacity-60" />
-                                                                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-3xl opacity-60" />
-                                                                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-3xl opacity-60" />
-
-                                                                {/* Scanning Line Animation */}
-                                                                <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-40 shadow-[0_0_15px_rgba(25,113,66,0.4)] animate-infinite-scan" />
-                                                            </div>
+                                                            <button
+                                                                onClick={() => setShowCamera(false)}
+                                                                className="absolute top-4 right-4 z-[110] h-10 w-10 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-xl border border-white/10 active:scale-90 transition-all"
+                                                            >
+                                                                <X className="h-6 w-6" />
+                                                            </button>
                                                         </div>
 
-                                                        {/* Capture Controls */}
-                                                        <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-6 px-10 z-50 sm:bottom-6">
-                                                            <button
-                                                                onClick={handleCaptureToVerify}
-                                                                disabled={ocrLoading}
-                                                                className="w-full max-w-md h-16 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-4 transition-all shadow-2xl active:scale-95 disabled:opacity-50 backdrop-blur-sm"
-                                                            >
-                                                                {ocrLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6" />}
-                                                                {ocrLoading ? "Analisando..." : "Capturar e Validar Item"}
-                                                            </button>
-
-                                                            <div className="bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 sm:hidden shadow-xl">
-                                                                <p className="text-white/70 text-[9px] uppercase font-black tracking-[0.3em] italic">Aponte para o QR Code da etiqueta</p>
-                                                            </div>
+                                                        <div className="mt-6 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 shadow-xl">
+                                                            <p className="text-white/70 text-[9px] uppercase font-black tracking-[0.3em] italic text-center">Aponte para o QR Code da etiqueta</p>
                                                         </div>
                                                     </div>
                                                 )}

@@ -2,10 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    basicSsl(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -72,6 +74,9 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    host: true,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -81,11 +86,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-                            vendor: ['react', 'react-dom', 'react-router-dom'],
-                            ui: ['lucide-react', 'sonner', 'clsx', 'tailwind-merge'],
-                            supabase: ['@supabase/supabase-js'],
-                            utils: ['xlsx', 'jspdf', 'jspdf-autotable']
-                        }
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['lucide-react', 'sonner', 'clsx', 'tailwind-merge'],
+          supabase: ['@supabase/supabase-js'],
+          utils: ['xlsx', 'jspdf', 'jspdf-autotable']
+        }
       }
     },
     chunkSizeWarningLimit: 1000
