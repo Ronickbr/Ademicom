@@ -421,7 +421,7 @@ export default function UsersManagementPage() {
                                         <div className="relative group">
                                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                             <select
-                                                className="w-full bg-neutral-800 border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
+                                                className="w-full bg-foreground/5 border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
                                                 value={newUser.role}
                                                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
                                             >
@@ -521,7 +521,7 @@ export default function UsersManagementPage() {
                                         <div className="relative group">
                                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                             <select
-                                                className="w-full bg-neutral-800 border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
+                                                className="w-full bg-foreground/5 border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
                                                 value={editingUser.role}
                                                 onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
                                             >
