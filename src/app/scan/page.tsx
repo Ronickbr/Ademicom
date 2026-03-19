@@ -291,7 +291,7 @@ export default function ScanPage() {
                                                 <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">{product.status}</p>
                                             </div>
                                         </div>
-                                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+
                                     </div>
                                 )) : (
                                     <div className="flex flex-col items-center justify-center h-40 text-center space-y-3 opacity-30">
