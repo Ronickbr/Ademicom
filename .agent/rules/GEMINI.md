@@ -101,7 +101,7 @@ When user's prompt is NOT in English:
 
 1. **Internally translate** for better comprehension
 2. **Respond in user's language** - match their communication
-3. **Code comments/variables** remain in English
+3. **Code comments/variables** translate in Portuguese
 
 ### 🧹 Clean Code (Global Mandatory)
 

@@ -59,6 +59,7 @@ export default function OrdersPage() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
     const [productSearchTerm, setProductSearchTerm] = useState("");
+    const [productSizeFilter, setProductSizeFilter] = useState("");
 
     // Camera Scanning States
     const { scanImage, ocrLoading } = useScan();
@@ -269,6 +270,7 @@ export default function OrdersPage() {
     const prepareNewOrder = async () => {
         setShowAddModal(true);
         setProductSearchTerm("");
+        setProductSizeFilter("");
         const { data: cData } = await supabase.from("clients").select("*");
         setClients((cData as Client[]) || []);
         const { data: pData } = await supabase.from("products").select("*").eq("status", "EM ESTOQUE").is("order_id", null);
@@ -783,32 +785,51 @@ export default function OrdersPage() {
                                         <span className="text-[10px] font-black px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">{selectedProducts.length} ITENS</span>
                                     </div>
 
-                                    {/* Product Filter */}
-                                    <div className="relative group">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                        <input
-                                            type="text"
-                                            placeholder="Filtrar por marca, modelo ou serial..."
-                                            className="w-full bg-foreground/5 border border-border/20 rounded-xl pl-10 h-11 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-foreground font-medium"
-                                            value={productSearchTerm}
-                                            onChange={(e) => setProductSearchTerm(e.target.value)}
-                                        />
+                                    {/* Product Filters */}
+                                    <div className="flex gap-2">
+                                        <div className="relative group flex-1">
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                            <input
+                                                type="text"
+                                                placeholder="Filtrar por marca, modelo ou serial..."
+                                                className="w-full bg-foreground/5 border border-border/20 rounded-xl pl-10 h-11 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-foreground font-medium"
+                                                value={productSearchTerm}
+                                                onChange={(e) => setProductSearchTerm(e.target.value)}
+                                            />
+                                        </div>
+                                        <select
+                                            value={productSizeFilter}
+                                            onChange={(e) => setProductSizeFilter(e.target.value)}
+                                            className="bg-foreground/5 border border-border/20 rounded-xl px-3 h-11 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-foreground font-medium w-[140px]"
+                                        >
+                                            <option value="" className="bg-card text-muted-foreground">Tamanhos (Todos)</option>
+                                            <option value="Pequeno" className="bg-card">Pequeno</option>
+                                            <option value="Médio" className="bg-card">Médio</option>
+                                            <option value="Grande" className="bg-card">Grande</option>
+                                        </select>
                                     </div>
 
                                     <div className="border border-border/20 rounded-2xl bg-card/40 p-3 max-h-72 overflow-y-auto space-y-2 custom-scrollbar shadow-inner backdrop-blur-sm">
                                         {(() => {
                                             const filtered = availableProducts.filter(p => {
-                                                const search = productSearchTerm.toLowerCase();
-                                                return (
-                                                    p.brand?.toLowerCase().includes(search) ||
-                                                    p.model?.toLowerCase().includes(search) ||
-                                                    p.internal_serial?.toLowerCase().includes(search) ||
-                                                    p.original_serial?.toLowerCase().includes(search) ||
-                                                    p.product_type?.toLowerCase().includes(search) ||
-                                                    p.market_class?.toLowerCase().includes(search) ||
-                                                    p.refrigerant_gas?.toLowerCase().includes(search) ||
-                                                    p.voltage?.toLowerCase().includes(search)
-                                                );
+                                                const searchMatch = !productSearchTerm ? true : (() => {
+                                                    const search = productSearchTerm.toLowerCase();
+                                                    return (
+                                                        p.brand?.toLowerCase().includes(search) ||
+                                                        p.model?.toLowerCase().includes(search) ||
+                                                        p.internal_serial?.toLowerCase().includes(search) ||
+                                                        p.original_serial?.toLowerCase().includes(search) ||
+                                                        p.product_type?.toLowerCase().includes(search) ||
+                                                        p.market_class?.toLowerCase().includes(search) ||
+                                                        p.refrigerant_gas?.toLowerCase().includes(search) ||
+                                                        p.voltage?.toLowerCase().includes(search) ||
+                                                        p.size?.toLowerCase().includes(search)
+                                                    );
+                                                })();
+
+                                                const sizeMatch = !productSizeFilter ? true : p.size === productSizeFilter;
+
+                                                return searchMatch && sizeMatch;
                                             });
 
                                             if (filtered.length === 0) {
@@ -848,6 +869,9 @@ export default function OrdersPage() {
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                             <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{p.product_type || "Equipamento"}</p>
+                                                            {p.size && (
+                                                                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 ml-1">{p.size}</span>
+                                                            )}
                                                             <div className="flex items-center gap-1.5 ml-auto">
                                                                 {p.market_class && (
                                                                     <span className="text-[8px] px-1.5 py-0.5 rounded bg-primary/5 border border-primary/10 text-primary/60 font-bold uppercase tracking-tighter">{p.market_class}</span>

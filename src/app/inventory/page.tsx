@@ -40,6 +40,7 @@ import { handleError } from "@/lib/errors";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Product, ProductLog } from "@/lib/types";
+import { calculateProductSize } from "@/lib/product-utils";
 
 const statusConfig = {
     'CADASTRO': { label: 'Cadastro', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Clock },
@@ -233,6 +234,7 @@ export default function InventoryPage() {
         if (!editingProduct) return;
         setIsSaving(true);
         try {
+            const productSize = await calculateProductSize(editingProduct.volume_total);
             const { error: updateError } = await supabase
                 .from("products")
                 .update({
@@ -257,6 +259,7 @@ export default function InventoryPage() {
                     electric_current: editingProduct.electric_current,
                     defrost_power: editingProduct.defrost_power,
                     frequency: editingProduct.frequency,
+                    size: productSize,
                     status: editingProduct.status,
                 })
                 .eq("id", editingProduct.id);
@@ -634,7 +637,12 @@ export default function InventoryPage() {
                                                         </td>
                                                         <td className="px-4 sm:px-6 py-4 sm:py-6 whitespace-nowrap">
                                                             <div className="flex flex-col gap-1">
-                                                                <span className="text-foreground font-bold text-[10px] sm:text-[11px] uppercase tracking-tight">{p.product_type || "N/A"}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-foreground font-bold text-[10px] sm:text-[11px] uppercase tracking-tight">{p.product_type || "N/A"}</span>
+                                                                    {p.size && (
+                                                                        <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">{p.size}</span>
+                                                                    )}
+                                                                </div>
                                                                 <div className="flex items-center gap-1.5 focus:outline-none">
                                                                     <span className="text-[8px] font-black text-muted-foreground uppercase opacity-40">{p.refrigerant_gas || "S/GÁS"}</span>
                                                                     <div className="h-1 w-1 rounded-full bg-foreground/10" />

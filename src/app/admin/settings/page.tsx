@@ -8,7 +8,8 @@ import {
     ShieldAlert,
     Hash,
     Info,
-    ClipboardList
+    ClipboardList,
+    Maximize
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -22,6 +23,8 @@ export default function AdminSettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [sequenceStart, setSequenceStart] = useState<string>("1");
     const [orderSequenceStart, setOrderSequenceStart] = useState<string>("1");
+    const [smallMax, setSmallMax] = useState<string>("300");
+    const [mediumMax, setMediumMax] = useState<string>("550");
 
     const isAuthorized = profile?.role === "ADMIN";
 
@@ -48,9 +51,15 @@ export default function AdminSettingsPage() {
             if (data) {
                 const ambicom = data.find(s => s.key === "ambicom_sequence_start");
                 const order = data.find(s => s.key === "order_note_sequence_start");
+                const refSize = data.find(s => s.key === "refrigerator_sizes");
 
                 if (ambicom) setSequenceStart(ambicom.value as string);
                 if (order) setOrderSequenceStart(order.value as string);
+                if (refSize && refSize.value) {
+                    const parsedValue = typeof refSize.value === 'string' ? JSON.parse(refSize.value) : refSize.value;
+                    setSmallMax(parsedValue.small_max?.toString() || "300");
+                    setMediumMax(parsedValue.medium_max?.toString() || "550");
+                }
             }
         } catch (error) {
             logger.error("Erro ao carregar configurações:", error);
@@ -91,6 +100,24 @@ export default function AdminSettingsPage() {
                 }, { onConflict: 'key' });
 
             if (error2) throw error2;
+
+            const sMaxNum = parseInt(smallMax);
+            const mMaxNum = parseInt(mediumMax);
+
+            if (isNaN(sMaxNum) || sMaxNum < 1 || isNaN(mMaxNum) || mMaxNum <= sMaxNum) {
+                toast.error("Limites de volume inválidos. O limite do médio deve ser maior que o limite do pequeno.");
+                return;
+            }
+
+            const { error: error3 } = await supabase
+                .from("system_settings")
+                .upsert({
+                    key: "refrigerator_sizes",
+                    value: { small_max: sMaxNum, medium_max: mMaxNum },
+                    updated_by: profile?.id
+                }, { onConflict: 'key' });
+
+            if (error3) throw error3;
 
             toast.success("Configurações salvas com sucesso!");
         } catch (error) {
@@ -229,6 +256,63 @@ export default function AdminSettingsPage() {
                                             <div className="h-4 w-4 rounded-full bg-foreground/10 flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5">!</div>
                                             <p className="text-[10px] text-muted-foreground italic">Este valor define o ponto de partida do contador de notas. Se houver notas com números superiores, o sistema continuará do maior valor encontrado.</p>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Refrigerator Sizes Setting Card */}
+                        <div className="pt-8 border-t border-border/10 space-y-8">
+                            <div className="flex items-center gap-4 border-b border-border/10 pb-6">
+                                <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                                    <Maximize className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black uppercase tracking-tight">Tamanhos de Refrigeradores</h3>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-widest">Defina os limites de volume (em Litros) para classificação</p>
+                                </div>
+                            </div>
+
+                            <div className="grid sm:grid-cols-3 gap-6">
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Até (Pequeno)</label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-emerald-500 transition-colors">
+                                            <span className="font-bold text-sm">L</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            required
+                                            className="w-full h-14 bg-background/50 border border-border/50 rounded-2xl pl-10 pr-4 text-xl font-black text-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 outline-none shadow-inner transition-all text-center"
+                                            value={smallMax}
+                                            onChange={(e) => setSmallMax(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block ml-1">Até (Médio)</label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-emerald-500 transition-colors">
+                                            <span className="font-bold text-sm">L</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            required
+                                            className="w-full h-14 bg-background/50 border border-border/50 rounded-2xl pl-10 pr-4 text-xl font-black text-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 outline-none shadow-inner transition-all text-center"
+                                            value={mediumMax}
+                                            onChange={(e) => setMediumMax(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="bg-foreground/5 border border-border/10 rounded-2xl p-4 space-y-3 flex flex-col justify-center">
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] text-muted-foreground"><strong>Pequeno:</strong> 0 a {smallMax || "300"} L</p>
+                                        <p className="text-[10px] text-muted-foreground"><strong>Médio:</strong> {(parseInt(smallMax) || 300) + 1} a {mediumMax || "550"} L</p>
+                                        <p className="text-[10px] text-muted-foreground"><strong>Grande:</strong> Acima de {mediumMax || "550"} L</p>
                                     </div>
                                 </div>
                             </div>

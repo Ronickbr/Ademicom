@@ -35,6 +35,7 @@ export default function ScanPage() {
 
     // OCR States
     const [showOcrModal, setShowOcrModal] = useState(false);
+    const [isFullscreenImage, setIsFullscreenImage] = useState(false);
 
     // Photos State
     const [labelPhoto, setLabelPhoto] = useState<string | null>(null);
@@ -314,7 +315,7 @@ export default function ScanPage() {
             {/* NotFound Modal (Legado/Fallback) */}
             {notFound && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#111] border border-border/20 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl space-y-6 p-8 relative">
+                    <div className="bg-card border border-border/20 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl space-y-6 p-8 relative">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
                         <div className="text-center space-y-2">
                             <div className="h-16 w-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto border border-amber-500/20 mb-4">
@@ -329,7 +330,7 @@ export default function ScanPage() {
                                 onClick={() => {
                                     registerProduct({ original_serial: notFound });
                                 }}
-                                className="h-14 bg-white text-black hover:bg-primary hover:text-primary-foreground rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3 shadow-lg"
+                                className="h-14 bg-foreground text-background hover:bg-primary hover:text-primary-foreground rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3 shadow-lg"
                             >
                                 <RefreshCw className="h-4 w-4" />
                                 Cadastrar Novo Ativo
@@ -348,7 +349,7 @@ export default function ScanPage() {
             {/* OCR Modal - Review and Confirm Registration */}
             {showOcrModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#111] border border-border/20 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                    <div className="bg-card border border-border/20 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between p-6 border-b border-border/10 bg-foreground/5 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/20">
@@ -372,16 +373,22 @@ export default function ScanPage() {
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Documento Digitalizado</label>
                                 <div className="flex justify-center">
-                                    <div className="w-full max-w-[280px] aspect-[3/4] rounded-2xl bg-black border border-border/20 overflow-hidden relative group">
+                                    <div
+                                        className="w-full max-w-[280px] aspect-[3/4] rounded-2xl bg-muted border border-border/20 overflow-hidden relative group cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                                        onClick={() => setIsFullscreenImage(true)}
+                                    >
                                         <img
                                             src={labelPhoto ?? undefined}
                                             alt="Etiqueta Capturada"
-                                            className="w-full h-full object-cover opacity-80"
+                                            className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                                <span className="text-[8px] font-black text-foreground uppercase tracking-widest">Análise de IA Concluída</span>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4 pointer-events-none">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                                    <span className="text-[8px] font-black text-white uppercase tracking-widest">Análise de IA Concluída</span>
+                                                </div>
+                                                <span className="text-[7px] font-bold text-white/70 uppercase tracking-widest ml-4">Clique para ampliar</span>
                                             </div>
                                         </div>
                                     </div>
@@ -640,6 +647,26 @@ export default function ScanPage() {
                     </div>
                 </div>
             )}
+            {/* Fullscreen Image Modal */}
+            {isFullscreenImage && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/95 backdrop-blur-md animate-in zoom-in-95 duration-200 cursor-zoom-out"
+                    onClick={() => setIsFullscreenImage(false)}
+                >
+                    <button
+                        className="absolute top-6 right-6 lg:top-10 lg:right-10 h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground transition-colors z-50 backdrop-blur-md"
+                        onClick={() => setIsFullscreenImage(false)}
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                    <img
+                        src={labelPhoto ?? undefined}
+                        alt="Etiqueta em Fullscreen"
+                        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl cursor-default pointer-events-none"
+                    />
+                </div>
+            )}
+
             {/* Inputs de Arquivo Ocultos */}
             <input
                 type="file"

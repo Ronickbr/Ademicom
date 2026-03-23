@@ -13,7 +13,7 @@ BEGIN
   ) INTO result;
   RETURN result;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 2. Optimized Internal Serial Generator RPC
 CREATE OR REPLACE FUNCTION get_next_internal_serial()
@@ -49,7 +49,7 @@ BEGIN
   new_serial := LPAD(next_num::TEXT, 5, '0') || '-' || current_year;
   RETURN new_serial;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 3. Optimized Filters RPC
 CREATE OR REPLACE FUNCTION get_inventory_filters()
@@ -60,7 +60,7 @@ BEGIN
   FROM products p
   WHERE p.brand IS NOT NULL OR p.voltage IS NOT NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 4. Improvements to Indexes
 CREATE INDEX IF NOT EXISTS idx_products_status_created ON products(status, created_at DESC);

@@ -7,7 +7,7 @@ BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SET search_path = public;
 
 -- 2. Profiles (App Users)
 CREATE TABLE IF NOT EXISTS profiles (
@@ -175,7 +175,7 @@ BEGIN
     VALUES (new.id, COALESCE(new.raw_user_meta_data->>'full_name', 'Novo Usuário'), COALESCE(new.raw_user_meta_data->>'role', 'TECNICO'));
     RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created

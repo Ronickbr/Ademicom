@@ -159,7 +159,7 @@ export default function TechnicianPage() {
                                         <tr>
                                             <th className="px-4 sm:px-6 py-5 whitespace-nowrap sticky left-0 bg-card/95 z-40 border-r border-border/10 shadow-[2px_0_10px_rgba(0,0,0,0.3)]">Ativo / Identificação</th>
                                             <th className="px-4 sm:px-6 py-5 whitespace-nowrap">Marca / Fabricante</th>
-                                            <th className="px-4 sm:px-6 py-5 text-center whitespace-nowrap">Status Lab</th>
+                                            <th className="px-4 sm:px-6 py-5 text-center whitespace-nowrap">Status</th>
                                             <th className="px-4 sm:px-6 py-5 whitespace-nowrap">Entrada</th>
                                             <th className="px-4 sm:px-6 py-5 text-right whitespace-nowrap pr-6 sm:pr-10">Checklist</th>
                                         </tr>

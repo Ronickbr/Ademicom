@@ -57,6 +57,7 @@ export interface Product {
     defrost_power: string | null;
     frequency: string | null;
     voltage: string | null;
+    size?: string | null;
     status: 'CADASTRO' | 'EM AVALIAÇÃO' | 'EM ESTOQUE' | 'VENDIDO' | 'RECUSADO' | 'LIBERADO' | 'TECNICO' | 'SUPERVISOR' | 'GESTOR';
     photo_product: string | null;
     photo_model: string | null;

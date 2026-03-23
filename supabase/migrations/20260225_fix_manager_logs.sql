@@ -32,7 +32,7 @@ CREATE POLICY "Logs viewable by authenticated users" ON product_logs
 
 DROP POLICY IF EXISTS "Logs insertable by authenticated users" ON product_logs;
 CREATE POLICY "Logs insertable by authenticated users" ON product_logs
-  FOR INSERT TO authenticated WITH CHECK (true);
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 4. Add RLS Policies for order_items (also missing)
 DROP POLICY IF EXISTS "Order items viewable by authenticated users" ON order_items;

@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Product } from '@/lib/types'
 import { logger } from '@/lib/logger'
 import { generateNextInternalSerial } from '@/lib/id-generator'
+import { calculateProductSize } from '@/lib/product-utils'
 
 const SCAN_COOLDOWN = 3000
 
@@ -182,12 +183,14 @@ export function useScan() {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
+      const productSize = await calculateProductSize(data.volume_total);
 
       const { data: newProduct, error } = await supabase
         .from("products")
         .insert({
           ...data,
           ...photoUrls,
+          size: productSize,
           internal_serial: internalSerial,
           status: 'CADASTRO',
           is_in_stock: true,
