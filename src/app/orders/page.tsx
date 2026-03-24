@@ -768,9 +768,9 @@ export default function OrdersPage() {
                                             value={selectedClient}
                                             onChange={(e) => setSelectedClient(e.target.value)}
                                         >
-                                            <option value="" className="bg-card text-muted-foreground">Selecione o cliente / parceiro...</option>
+                                            <option value="" className="bg-background text-muted-foreground">Selecione o cliente / parceiro...</option>
                                             {clients.map(c => (
-                                                <option key={c.id} value={c.id} className="bg-card">{c.name}</option>
+                                                <option key={c.id} value={c.id} className="bg-background text-foreground">{c.name}</option>
                                             ))}
                                         </select>
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground opacity-50 group-focus-within:opacity-100 transition-opacity">
@@ -802,10 +802,10 @@ export default function OrdersPage() {
                                             onChange={(e) => setProductSizeFilter(e.target.value)}
                                             className="bg-foreground/5 border border-border/20 rounded-xl px-3 h-11 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-foreground font-medium w-[140px]"
                                         >
-                                            <option value="" className="bg-card text-muted-foreground">Tamanhos (Todos)</option>
-                                            <option value="Pequeno" className="bg-card">Pequeno</option>
-                                            <option value="Médio" className="bg-card">Médio</option>
-                                            <option value="Grande" className="bg-card">Grande</option>
+                                            <option value="" className="bg-background text-muted-foreground">Tamanhos (Todos)</option>
+                                            <option value="Pequeno" className="bg-background text-foreground">Pequeno</option>
+                                            <option value="Médio" className="bg-background text-foreground">Médio</option>
+                                            <option value="Grande" className="bg-background text-foreground">Grande</option>
                                         </select>
                                     </div>
 
