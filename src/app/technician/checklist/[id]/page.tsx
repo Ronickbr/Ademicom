@@ -13,12 +13,14 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Product, ChecklistItem } from "@/lib/types";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ChevronDown, ChevronUp, CheckSquare, Square } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function TechnicianChecklist() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { profile } = useAuth();
     const [product, setProduct] = useState<Product | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,11 +28,33 @@ export default function TechnicianChecklist() {
     const [checklistData, setChecklistData] = useState<Record<string, boolean>>({});
     const [obs, setObs] = useState("");
 
+    const isAdmin = profile?.role === "ADMIN";
+
+    // Accordion state
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
     // New field state
     const [isAddingField, setIsAddingField] = useState(false);
     const [newFieldLabel, setNewFieldLabel] = useState("");
+    const [dynamicCategories, setDynamicCategories] = useState<string[]>(["Funcional", "Estético", "Componentes", "Geral"]);
     const [newFieldCategory, setNewFieldCategory] = useState("Geral");
     const [isSavingField, setIsSavingField] = useState(false);
+
+    // Group items by category
+    const groupedItems = checklistItems.reduce((acc, item) => {
+        if (!acc[item.category]) acc[item.category] = [];
+        acc[item.category].push(item);
+        return acc;
+    }, {} as Record<string, ChecklistItem[]>);
+
+    const categories = Object.keys(groupedItems).sort();
+
+    useEffect(() => {
+        // Expand first category by default
+        if (categories.length > 0 && expandedCategories.size === 0) {
+            setExpandedCategories(new Set([categories[0]]));
+        }
+    }, [categories]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -59,6 +83,25 @@ export default function TechnicianChecklist() {
                 const initial: Record<string, boolean> = {};
                 items.forEach(item => initial[item.id] = false);
                 setChecklistData(initial);
+
+                // Fetch dynamic categories
+                const { data: settingsData } = await supabase
+                    .from("system_settings")
+                    .select("value")
+                    .eq("key", "checklist_categories")
+                    .single();
+
+                if (settingsData?.value) {
+                    const parsedCategories = typeof settingsData.value === 'string'
+                        ? JSON.parse(settingsData.value)
+                        : settingsData.value;
+                    if (Array.isArray(parsedCategories)) {
+                        setDynamicCategories(parsedCategories);
+                        if (!parsedCategories.includes(newFieldCategory)) {
+                            setNewFieldCategory(parsedCategories[0] || "Geral");
+                        }
+                    }
+                }
             } catch (error) {
                 logger.error("Erro ao carregar dados do checklist:", error);
                 toast.error("Erro ao carregar dados");
@@ -73,6 +116,24 @@ export default function TechnicianChecklist() {
 
     const toggleItem = (itemId: string) => {
         setChecklistData(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+    };
+
+    const toggleCategory = (category: string) => {
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(category)) next.delete(category);
+            else next.add(category);
+            return next;
+        });
+    };
+
+    const selectAllInCategory = (category: string, value: boolean) => {
+        const categoryItems = groupedItems[category] || [];
+        const newData = { ...checklistData };
+        categoryItems.forEach(item => {
+            newData[item.id] = value;
+        });
+        setChecklistData(newData);
     };
 
     const handleAddField = async () => {
@@ -206,101 +267,156 @@ export default function TechnicianChecklist() {
 
                 <div className="grid lg:grid-cols-5 gap-6 sm:gap-10">
                     <div className="lg:col-span-3 space-y-6 sm:space-y-8">
-                        {/* Dynamic Checklist */}
-                        <div className="grid gap-3">
-                            {checklistItems.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => toggleItem(item.id)}
-                                    className={cn(
-                                        "flex items-center justify-between p-4 sm:p-6 rounded-2xl border transition-all duration-300 text-left group",
-                                        checklistData[item.id]
-                                            ? "bg-primary/5 border-primary/40 shadow-[0_0_20px_rgba(14,165,233,0.1)]"
-                                            : "bg-foreground/5 border-border/20 hover:border-border/40 hover:bg-foreground/10"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-4 sm:gap-6">
-                                        <div className={cn(
-                                            "h-8 w-8 rounded-xl border-2 flex items-center justify-center transition-all duration-500 shrink-0",
-                                            checklistData[item.id]
-                                                ? "bg-primary border-primary rotate-0 scale-110 shadow-lg shadow-primary/20"
-                                                : "border-muted-foreground/30 bg-background/50 rotate-45 scale-90 group-hover:border-muted-foreground/50 group-hover:bg-background/80"
-                                        )}>
-                                            {checklistData[item.id] && <CheckCircle className="h-5 w-5 text-primary-foreground" />}
-                                        </div>
-                                        <div>
-                                            <div className={cn("text-base sm:text-lg font-black tracking-tight transition-colors italic uppercase", checklistData[item.id] ? "text-primary" : "text-foreground/90")}>
-                                                {item.label}
-                                            </div>
-                                            <div className="text-[10px] font-black uppercase text-muted-foreground/70 tracking-widest mt-0.5">{item.category}</div>
-                                        </div>
-                                    </div>
-                                    {checklistData[item.id] && (
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest animate-in fade-in zoom-in slide-in-from-right-4 shrink-0 ml-2">
-                                            OK
-                                            <CheckCircle className="h-3 w-3" />
-                                        </div>
-                                    )}
-                                </button>
-                            ))}
+                        {/* Dynamic Checklist grouped by Categories */}
+                        <div className="space-y-4">
+                            {categories.map((category) => {
+                                const items = groupedItems[category];
+                                const isExpanded = expandedCategories.has(category);
+                                const categoryCheckedCount = items.filter(item => checklistData[item.id]).length;
+                                const isAllChecked = categoryCheckedCount === items.length;
 
-                            {/* Add Field Button/Input */}
-                            {!isAddingField ? (
-                                <button
-                                    onClick={() => setIsAddingField(true)}
-                                    className="flex items-center justify-center gap-3 p-4 rounded-2xl border border-dashed border-border/40 hover:border-primary/50 hover:bg-primary/5 transition-all group"
-                                >
-                                    <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
-                                    <span className="text-sm font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">Adicionar Novo Campo</span>
-                                </button>
-                            ) : (
-                                <div className="glass-card bg-card border-primary/30 p-6 rounded-2xl space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl">
-                                    <div className="flex items-center justify-between pb-2 border-b border-border/10 mb-2">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Novo Requisito Técnico</span>
-                                        <button onClick={() => setIsAddingField(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Nome do Item</label>
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                value={newFieldLabel}
-                                                onChange={(e) => setNewFieldLabel(e.target.value)}
-                                                placeholder="Ex: Verificar vedação da porta..."
-                                                className="w-full bg-card/40 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all font-bold placeholder:font-medium placeholder:text-muted-foreground/30 italic"
-                                            />
+                                return (
+                                    <div key={category} className="glass-card bg-card/40 border-border/20 rounded-2xl overflow-hidden transition-all duration-300">
+                                        {/* Category Header */}
+                                        <div
+                                            className={cn(
+                                                "flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-foreground/5 transition-colors",
+                                                isExpanded && "border-b border-border/10 bg-foreground/5"
+                                            )}
+                                            onClick={() => toggleCategory(category)}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={cn(
+                                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                                                    isAllChecked ? "bg-primary/20 text-primary" : "bg-muted/10 text-muted-foreground"
+                                                )}>
+                                                    {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm sm:text-base font-black uppercase tracking-widest italic">{category}</h3>
+                                                    <div className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">
+                                                        {categoryCheckedCount} de {items.length} itens validados
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    selectAllInCategory(category, !isAllChecked);
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                                                    isAllChecked
+                                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                                                        : "bg-foreground/5 text-muted-foreground hover:bg-foreground/10"
+                                                )}
+                                            >
+                                                {isAllChecked ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
+                                                {isAllChecked ? "Limpar Seção" : "Marcar Tudo"}
+                                            </button>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3">
+
+                                        {/* Category Items (Collapsible Content) */}
+                                        {isExpanded && (
+                                            <div className="p-4 sm:p-6 grid gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {items.map((item) => (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => toggleItem(item.id)}
+                                                        className={cn(
+                                                            "flex items-center justify-between p-4 rounded-xl border transition-all duration-300 text-left group",
+                                                            checklistData[item.id]
+                                                                ? "bg-primary/5 border-primary/30"
+                                                                : "bg-background/40 border-border/10 hover:border-border/30"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={cn(
+                                                                "h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
+                                                                checklistData[item.id]
+                                                                    ? "bg-primary border-primary scale-110"
+                                                                    : "border-muted-foreground/30 bg-background/50 scale-90"
+                                                            )}>
+                                                                {checklistData[item.id] && <CheckCircle className="h-4 w-4 text-primary-foreground" />}
+                                                            </div>
+                                                            <div>
+                                                                <div className={cn("text-xs sm:text-sm font-bold tracking-tight italic uppercase", checklistData[item.id] ? "text-primary" : "text-foreground/80")}>
+                                                                    {item.label}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {checklistData[item.id] && (
+                                                            <div className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
+                                                                OK
+                                                                <CheckCircle className="h-2.5 w-2.5" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {/* Add Field Button/Input - Restricted to Admin */}
+                            {isAdmin && (
+                                !isAddingField ? (
+                                    <button
+                                        onClick={() => setIsAddingField(true)}
+                                        className="flex items-center justify-center gap-3 p-4 rounded-2xl border border-dashed border-border/40 hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                    >
+                                        <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                                        <span className="text-sm font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">Adicionar Novo Campo</span>
+                                    </button>
+                                ) : (
+                                    <div className="glass-card bg-card border-primary/30 p-6 rounded-2xl space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl">
+                                        <div className="flex items-center justify-between pb-2 border-b border-border/10 mb-2">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Novo Requisito Técnico</span>
+                                            <button onClick={() => setIsAddingField(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <div className="space-y-4">
                                             <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Categoria</label>
-                                                <select
-                                                    value={newFieldCategory}
-                                                    onChange={(e) => setNewFieldCategory(e.target.value)}
-                                                    className="w-full bg-card/40 border border-border/20 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer"
-                                                >
-                                                    <option value="Funcional">Funcional</option>
-                                                    <option value="Estético">Estético</option>
-                                                    <option value="Componentes">Componentes</option>
-                                                    <option value="Geral">Geral</option>
-                                                    <option value="Outros">Outros</option>
-                                                </select>
+                                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Nome do Item</label>
+                                                <input
+                                                    autoFocus
+                                                    type="text"
+                                                    value={newFieldLabel}
+                                                    onChange={(e) => setNewFieldLabel(e.target.value)}
+                                                    placeholder="Ex: Verificar vedação da porta..."
+                                                    className="w-full bg-card/40 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all font-bold placeholder:font-medium placeholder:text-muted-foreground/30 italic"
+                                                />
                                             </div>
-                                            <div className="flex items-end shadow-2xl">
-                                                <button
-                                                    onClick={handleAddField}
-                                                    disabled={isSavingField}
-                                                    className="w-full h-[46px] rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(14,165,233,0.3)] flex items-center justify-center gap-2"
-                                                >
-                                                    {isSavingField ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                                                    Confirmar
-                                                </button>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Categoria</label>
+                                                    <select
+                                                        value={newFieldCategory}
+                                                        onChange={(e) => setNewFieldCategory(e.target.value)}
+                                                        className="w-full bg-background border border-border/20 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer shadow-sm"
+                                                    >
+                                                        {dynamicCategories.map(cat => (
+                                                            <option key={cat} value={cat} className="bg-background text-foreground">{cat}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="flex items-end shadow-2xl">
+                                                    <button
+                                                        onClick={handleAddField}
+                                                        disabled={isSavingField}
+                                                        className="w-full h-[46px] rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(14,165,233,0.3)] flex items-center justify-center gap-2"
+                                                    >
+                                                        {isSavingField ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                                                        Confirmar
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                )
                             )}
                         </div>
                     </div>

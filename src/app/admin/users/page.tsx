@@ -421,14 +421,14 @@ export default function UsersManagementPage() {
                                         <div className="relative group">
                                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                             <select
-                                                className="w-full bg-foreground/5 border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
+                                                className="w-full bg-background border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold shadow-sm"
                                                 value={newUser.role}
                                                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
                                             >
-                                                <option value="TECNICO">Técnico Operacional</option>
-                                                <option value="SUPERVISOR">Supervisor de QA</option>
-                                                <option value="GESTOR">Gestor Logístico</option>
-                                                <option value="ADMIN">Administrador de Sistema</option>
+                                                <option value="TECNICO" className="bg-background text-foreground">Técnico Operacional</option>
+                                                <option value="SUPERVISOR" className="bg-background text-foreground">Supervisor de QA</option>
+                                                <option value="GESTOR" className="bg-background text-foreground">Gestor Logístico</option>
+                                                <option value="ADMIN" className="bg-background text-foreground">Administrador de Sistema</option>
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground opacity-50">
                                                 <ChevronRight className="h-5 w-5 rotate-90" />
@@ -521,14 +521,14 @@ export default function UsersManagementPage() {
                                         <div className="relative group">
                                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                             <select
-                                                className="w-full bg-foreground/5 border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold"
+                                                className="w-full bg-background border border-border/20 rounded-xl pl-12 pr-10 py-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all appearance-none font-bold shadow-sm"
                                                 value={editingUser.role}
                                                 onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
                                             >
-                                                <option value="TECNICO">Técnico Operacional</option>
-                                                <option value="SUPERVISOR">Supervisor de QA</option>
-                                                <option value="GESTOR">Gestor Logístico</option>
-                                                <option value="ADMIN">Administrador de Sistema</option>
+                                                <option value="TECNICO" className="bg-background text-foreground">Técnico Operacional</option>
+                                                <option value="SUPERVISOR" className="bg-background text-foreground">Supervisor de QA</option>
+                                                <option value="GESTOR" className="bg-background text-foreground">Gestor Logístico</option>
+                                                <option value="ADMIN" className="bg-background text-foreground">Administrador de Sistema</option>
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground opacity-50">
                                                 <ChevronRight className="h-5 w-5 rotate-90" />

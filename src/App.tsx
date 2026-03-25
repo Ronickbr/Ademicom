@@ -13,6 +13,7 @@ import ClientsPage from '@/app/clients/page'
 import OrdersPage from '@/app/orders/page'
 import UsersManagementPage from '@/app/admin/users/page'
 import AdminSettingsPage from '@/app/admin/settings/page'
+import AdminChecklistPage from '@/app/admin/checklist/page'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { ReloadPrompt } from '@/components/ReloadPrompt'
 
@@ -47,6 +48,7 @@ function App() {
         <Route path="/clients" element={<PrivateRoute><ClientsPage /></PrivateRoute>} />
         <Route path="/orders" element={<PrivateRoute><OrdersPage /></PrivateRoute>} />
         <Route path="/admin/users" element={<PrivateRoute><UsersManagementPage /></PrivateRoute>} />
+        <Route path="/admin/checklist" element={<PrivateRoute><AdminChecklistPage /></PrivateRoute>} />
         <Route path="/admin/settings" element={<PrivateRoute><AdminSettingsPage /></PrivateRoute>} />
 
         {/* Fallback */}

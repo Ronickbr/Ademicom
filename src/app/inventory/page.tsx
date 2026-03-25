@@ -399,11 +399,11 @@ export default function InventoryPage() {
                             <select
                                 value={statusFilter}
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="w-full h-12 sm:h-14 bg-foreground/5 border border-border/20 rounded-xl pl-10 pr-4 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer text-foreground font-bold"
+                                className="w-full h-12 sm:h-14 bg-background border border-border/20 rounded-xl pl-10 pr-4 text-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer text-foreground font-bold shadow-sm"
                             >
-                                <option value="ALL" className="bg-card">Todos os Status</option>
+                                <option value="ALL" className="bg-background">Todos os Status</option>
                                 {Object.entries(statusConfig).map(([val, conf]) => (
-                                    <option key={val} value={val} className="bg-card">{conf.label}</option>
+                                    <option key={val} value={val} className="bg-background">{conf.label}</option>
                                 ))}
                             </select>
                         </div>
@@ -456,11 +456,11 @@ export default function InventoryPage() {
                                         <select
                                             value={brandFilter}
                                             onChange={e => setBrandFilter(e.target.value)}
-                                            className="w-full h-12 bg-foreground/5 border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                            className="w-full h-12 bg-background border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold shadow-sm"
                                         >
-                                            <option value="ALL" className="bg-card">Todas as Marcas</option>
+                                            <option value="ALL" className="bg-background">Todas as Marcas</option>
                                             {availableBrands.map(b => (
-                                                <option key={b} value={b} className="bg-card">{b}</option>
+                                                <option key={b} value={b} className="bg-background">{b}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -471,11 +471,11 @@ export default function InventoryPage() {
                                         <select
                                             value={voltageFilter}
                                             onChange={e => setVoltageFilter(e.target.value)}
-                                            className="w-full h-12 bg-foreground/5 border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                            className="w-full h-12 bg-background border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold shadow-sm"
                                         >
-                                            <option value="ALL" className="bg-card">Todas as Voltagens</option>
+                                            <option value="ALL" className="bg-background">Todas as Voltagens</option>
                                             {availableVoltages.map(v => (
-                                                <option key={v} value={v} className="bg-card">{v}</option>
+                                                <option key={v} value={v} className="bg-background">{v}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -486,11 +486,11 @@ export default function InventoryPage() {
                                         <select
                                             value={typeFilter}
                                             onChange={e => setTypeFilter(e.target.value)}
-                                            className="w-full h-12 bg-foreground/5 border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                            className="w-full h-12 bg-background border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold shadow-sm"
                                         >
-                                            <option value="ALL" className="bg-card">Todos os Tipos</option>
+                                            <option value="ALL" className="bg-background">Todos os Tipos</option>
                                             {availableTypes.map(t => (
-                                                <option key={t} value={t} className="bg-card">{t}</option>
+                                                <option key={t} value={t} className="bg-background">{t}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -501,11 +501,11 @@ export default function InventoryPage() {
                                         <select
                                             value={classFilter}
                                             onChange={e => setClassFilter(e.target.value)}
-                                            className="w-full h-12 bg-foreground/5 border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold"
+                                            className="w-full h-12 bg-background border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold shadow-sm"
                                         >
-                                            <option value="ALL" className="bg-card">Todas as Classes</option>
+                                            <option value="ALL" className="bg-background">Todas as Classes</option>
                                             {availableClasses.map(c => (
-                                                <option key={c} value={c} className="bg-card">{c}</option>
+                                                <option key={c} value={c} className="bg-background">{c}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -517,11 +517,11 @@ export default function InventoryPage() {
                                             <select
                                                 value={gasFilter}
                                                 onChange={e => setGasFilter(e.target.value)}
-                                                className="w-full h-12 bg-foreground/5 border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold flex-1"
+                                                className="w-full h-12 bg-background border border-border/20 rounded-xl px-4 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer font-bold flex-1 shadow-sm"
                                             >
-                                                <option value="ALL" className="bg-card">Todos os Gases</option>
+                                                <option value="ALL" className="bg-background">Todos os Gases</option>
                                                 {availableGases.map(g => (
-                                                    <option key={g} value={g} className="bg-card">{g}</option>
+                                                    <option key={g} value={g} className="bg-background">{g}</option>
                                                 ))}
                                             </select>
                                             <button

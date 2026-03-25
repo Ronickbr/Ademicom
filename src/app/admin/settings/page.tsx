@@ -318,6 +318,36 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
+                        {/* Technical Protocol Management Card */}
+                        <div className="pt-8 border-t border-border/10 space-y-8">
+                            <div className="flex items-center gap-4 border-b border-border/10 pb-6">
+                                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                    <ClipboardList className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black uppercase tracking-tight">Protocolo Técnico</h3>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-widest">Gestão de itens e categorias do checklist</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-foreground/5 border border-border/10 rounded-2xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:bg-foreground/10 group/card">
+                                <div className="space-y-2 text-center sm:text-left">
+                                    <p className="text-sm font-bold text-foreground italic uppercase tracking-tight">Itens de Avaliação Técnica</p>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
+                                        Configure os campos obrigatórios e opcionais que os técnicos devem preencher durante a auditoria de ativos. Adicione novas verificações ou remova itens obsoletos.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/admin/checklist")}
+                                    className="h-12 px-8 rounded-xl bg-background border border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground font-black uppercase tracking-widest text-[9px] transition-all flex items-center gap-2 shrink-0 shadow-lg group-hover/card:scale-105"
+                                >
+                                    Gerenciar Protocolo
+                                    <ClipboardList className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="pt-6 border-t border-border/10 flex justify-end">
                             <button
                                 disabled={isSaving}

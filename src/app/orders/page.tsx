@@ -764,7 +764,7 @@ export default function OrdersPage() {
                                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                         <select
                                             required
-                                            className="w-full bg-foreground/5 border border-border/20 rounded-2xl pl-12 pr-10 h-16 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all appearance-none text-foreground shadow-inner font-bold"
+                                            className="w-full bg-background border border-border/20 rounded-2xl pl-12 pr-10 h-16 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all appearance-none text-foreground shadow-inner font-bold"
                                             value={selectedClient}
                                             onChange={(e) => setSelectedClient(e.target.value)}
                                         >
@@ -800,7 +800,7 @@ export default function OrdersPage() {
                                         <select
                                             value={productSizeFilter}
                                             onChange={(e) => setProductSizeFilter(e.target.value)}
-                                            className="bg-foreground/5 border border-border/20 rounded-xl px-3 h-11 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-foreground font-medium w-[140px]"
+                                            className="bg-background border border-border/20 rounded-xl px-3 h-11 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-foreground font-medium w-[140px]"
                                         >
                                             <option value="" className="bg-background text-muted-foreground">Tamanhos (Todos)</option>
                                             <option value="Pequeno" className="bg-background text-foreground">Pequeno</option>
