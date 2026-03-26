@@ -245,7 +245,7 @@ export default function ScanPage() {
             const stream = webcamRef.current?.video?.srcObject as MediaStream | null;
             if (stream) {
                 stream.getVideoTracks().forEach(t => {
-                    try { t.applyConstraints({ advanced: [{ torch: false } as any] }); } catch { }
+                    try { t.applyConstraints({ advanced: [{ torch: false } as any] }); } catch { /* ignore */ }
                 });
             }
         };
@@ -699,7 +699,7 @@ export default function ScanPage() {
                                 <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-1">Documento Digitalizado</label>
                                 <div className="flex justify-center">
                                     <div
-                                        className="w-full max-w-[280px] aspect-[3/4] rounded-2xl bg-muted border border-border/20 overflow-hidden relative group cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                                        className="w-full max-w-[280px] aspect-[9/16] rounded-2xl bg-muted border border-border/20 overflow-hidden relative group cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                                         onClick={() => setIsFullscreenImage(true)}
                                     >
                                         <img
@@ -806,7 +806,10 @@ export default function ScanPage() {
                             </button>
                             <button
                                 onClick={async () => {
-                                    if (!labelPhoto) { toast.error("Foto da etiqueta é obrigatória"); return; }
+                                    if (isProcessing || !labelPhoto) {
+                                        if (!labelPhoto) toast.error("Foto da etiqueta é obrigatória");
+                                        return;
+                                    }
                                     const capturedPhotos = { photo_model: labelPhoto };
                                     const result = await registerProduct(ocrForm, capturedPhotos);
                                     if (result) {
@@ -816,10 +819,15 @@ export default function ScanPage() {
                                         await printLabels([result]);
                                     }
                                 }}
-                                className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
+                                disabled={isProcessing}
+                                className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <CheckCircle className="h-4 w-4" />
-                                Confirmar e Cadastrar no Banco
+                                {isProcessing ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <CheckCircle className="h-4 w-4" />
+                                )}
+                                {isProcessing ? "PROCESSANDO..." : "Confirmar e Cadastrar no Banco"}
                             </button>
                         </div>
                     </div>
@@ -841,7 +849,7 @@ export default function ScanPage() {
                     <img
                         src={labelPhoto ?? undefined}
                         alt="Etiqueta em Fullscreen"
-                        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl cursor-default pointer-events-none"
+                        className="max-w-full max-h-[90vh] aspect-[9/16] object-cover rounded-xl shadow-2xl cursor-default pointer-events-none"
                     />
                 </div>
             )}

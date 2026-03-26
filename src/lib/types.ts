@@ -58,7 +58,7 @@ export interface Product {
     frequency: string | null;
     voltage: string | null;
     size?: string | null;
-    status: 'CADASTRO' | 'EM AVALIAÇÃO' | 'EM ESTOQUE' | 'VENDIDO' | 'RECUSADO' | 'LIBERADO' | 'TECNICO' | 'SUPERVISOR' | 'GESTOR';
+    status: 'CADASTRO' | 'EM AVALIAÇÃO' | 'EM ESTOQUE' | 'VENDIDO' | 'RECUSADO' | 'LIBERADO' | 'TECNICO' | 'SUPERVISOR' | 'GESTOR' | 'REPROVADO';
     photo_product: string | null;
     photo_model: string | null;
     photo_serial: string | null;

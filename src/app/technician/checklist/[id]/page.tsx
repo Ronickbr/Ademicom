@@ -112,7 +112,7 @@ export default function TechnicianChecklist() {
         };
 
         if (id) fetchData();
-    }, [id, navigate]);
+    }, [id, navigate, newFieldCategory]);
 
     const toggleItem = (itemId: string) => {
         setChecklistData(prev => ({ ...prev, [itemId]: !prev[itemId] }));

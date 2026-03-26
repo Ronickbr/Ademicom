@@ -88,7 +88,7 @@ export default function ApprovalsPage() {
 
     const handleAction = async (productId: string, action: "APPROVE" | "REJECT") => {
         setIsProcessing(productId);
-        const newStatus = action === "APPROVE" ? "EM ESTOQUE" : "CADASTRO";
+        const newStatus = action === "APPROVE" ? "EM ESTOQUE" : "REPROVADO";
 
         try {
             const { error: updateError } = await supabase
@@ -126,8 +126,8 @@ export default function ApprovalsPage() {
                     }
                 });
             } else {
-                toast.error("Produto Rejeitado", {
-                    description: "Retornado para o cadastro."
+                toast.error("Produto Reprovado", {
+                    description: "Enviado ao estoque com status de reprovação."
                 });
             }
 
@@ -313,8 +313,8 @@ export default function ApprovalsPage() {
                                                         <button
                                                             onClick={() => handleAction(product.id, "REJECT")}
                                                             disabled={!!isProcessing}
-                                                            className="h-9 w-9 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl bg-red-500/10 text-red-500 border border-red-500/10 hover:bg-red-500 hover:text-foreground transition-all flex items-center justify-center active:scale-95 group/reject"
-                                                            title="Rejeitar"
+                                                            className="h-9 w-9 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl bg-red-500/10 text-red-500 border border-red-500/10 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center active:scale-95 group/reject"
+                                                            title="Reprovar"
                                                         >
                                                             <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                                                         </button>
@@ -515,7 +515,7 @@ export default function ApprovalsPage() {
                                     className="px-10 h-16 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-foreground transition-all flex items-center justify-center gap-4 font-black text-xs uppercase tracking-[0.2em] active:scale-95"
                                 >
                                     <XCircle className="h-6 w-6" />
-                                    Rejeitar
+                                    Reprovar
                                 </button>
                             </div>
                         </div>
@@ -534,7 +534,7 @@ export default function ApprovalsPage() {
                     <img
                         src={fullImageUrl}
                         alt="Visualização ampliada"
-                        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+                        className="max-w-full max-h-[90vh] aspect-[9/16] object-cover rounded-xl shadow-2xl animate-in zoom-in-95 duration-300"
                     />
                 </div>
             )}

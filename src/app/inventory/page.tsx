@@ -48,6 +48,7 @@ const statusConfig = {
     'EM ESTOQUE': { label: 'Em Estoque', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: Box },
     'VENDIDO': { label: 'Vendido', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: CheckCircle2 },
     'RECUSADO': { label: 'Recusado', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: XCircle },
+    'REPROVADO': { label: 'Reprovado', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: AlertCircle },
 };
 
 interface InventoryProduct extends Product {
@@ -132,14 +133,7 @@ export default function InventoryPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchInventory();
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [page, searchTerm, statusFilter, brandFilter, voltageFilter, typeFilter, classFilter, gasFilter]);
-
-    const fetchInventory = async () => {
+    const fetchInventory = React.useCallback(async () => {
         setIsLoading(true);
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000));
 
@@ -154,7 +148,9 @@ export default function InventoryPage() {
                 query = query.or(`brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,internal_serial.ilike.%${searchTerm}%,original_serial.ilike.%${searchTerm}%,product_type.ilike.%${searchTerm}%,market_class.ilike.%${searchTerm}%,refrigerant_gas.ilike.%${searchTerm}%,voltage.ilike.%${searchTerm}%,pnc_ml.ilike.%${searchTerm}%,commercial_code.ilike.%${searchTerm}%`);
             }
 
-            if (statusFilter !== "ALL") {
+            if (statusFilter === "EM ESTOQUE") {
+                query = query.in('status', ['EM ESTOQUE', 'REPROVADO']);
+            } else if (statusFilter !== "ALL") {
                 query = query.eq('status', statusFilter);
             }
 
@@ -194,7 +190,14 @@ export default function InventoryPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [page, searchTerm, statusFilter, brandFilter, voltageFilter, typeFilter, classFilter, gasFilter]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchInventory();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [page, searchTerm, statusFilter, brandFilter, voltageFilter, typeFilter, classFilter, gasFilter, fetchInventory]);
 
     const toggleSelect = (id: string) => {
         const newSelected = new Set(selectedIds);
@@ -1086,7 +1089,7 @@ export default function InventoryPage() {
 
                                                 return (
                                                     <div
-                                                        className="group relative w-full max-w-md aspect-[3/4] rounded-3xl bg-card/40 border border-border/20 overflow-hidden cursor-zoom-in active:scale-95 transition-all shadow-2xl"
+                                                        className="group relative w-full max-w-md aspect-[9/16] rounded-3xl bg-card/40 border border-border/20 overflow-hidden cursor-zoom-in active:scale-95 transition-all shadow-2xl"
                                                         onClick={() => photo && setFullImageUrl(photo)}
                                                     >
                                                         {photo ? (
@@ -1303,7 +1306,7 @@ export default function InventoryPage() {
                         <img
                             src={fullImageUrl}
                             alt="Zoom"
-                            className="max-w-[90vw] max-h-[90vh] object-contain transition-transform duration-200 select-none shadow-2xl"
+                            className="max-w-[90vw] max-h-[90vh] aspect-[9/16] object-cover transition-transform duration-200 select-none shadow-2xl rounded-xl"
                             style={{
                                 transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
                                 transition: isDragging ? 'none' : 'transform 0.2s ease-out'
