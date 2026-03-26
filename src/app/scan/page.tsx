@@ -30,12 +30,11 @@ import { logger } from "@/lib/logger";
 // ─── Constantes de Câmera ──────────────────────────────────────────────────
 const CAMERA_CONSTRAINTS: MediaTrackConstraints = {
     facingMode: "environment",
-    width: { ideal: 720, min: 480 },
-    height: { ideal: 1280, min: 640 },
-    aspectRatio: { ideal: 9 / 16 },
-    frameRate: { ideal: 20, max: 24 },
-    // Desativa estabilização digital para reduzir delay
-    // @ts-expect-error – constraint experimental suportado em mobile
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    aspectRatio: { ideal: 16 / 9 }, // Padrão da maioria dos sensores, o CSS cuidará do recorte 9:16 visual
+    frameRate: { ideal: 24, max: 30 },
+    // @ts-expect-error – constraint experimental
     videoStabilization: false,
 };
 
@@ -336,10 +335,7 @@ export default function ScanPage() {
         // Aguarda o foco antes de capturar (400ms mín.)
         await new Promise(r => setTimeout(r, 450));
 
-        const rawImage = webcamRef.current.getScreenshot({
-            width: 720,
-            height: 1280,
-        });
+        const rawImage = webcamRef.current.getScreenshot();
         if (!rawImage) return;
 
         toast.info("Processando imagem...");
@@ -495,42 +491,31 @@ export default function ScanPage() {
                                             </div>
                                         )}
 
-                                        {/* ── Overlay de Centralização (Máscara) ── */}
+                                        {/* ── Viewfinder Clean (Área de Foco Total) ── */}
                                         {cameraReady && (
-                                            <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-                                                {/* Áreas escurecidas ao redor */}
-                                                <div className="absolute top-0 w-full h-[25%] bg-black/40 border-b border-primary/20" />
-                                                <div className="absolute bottom-0 w-full h-[25%] bg-black/40 border-t border-primary/20" />
+                                            <div className="absolute inset-0 z-10 pointer-events-none">
+                                                {/* Cantilheiras de Foco Sutis e Totais */}
+                                                <div className={cn(
+                                                    "absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 rounded-tl transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/20"
+                                                )} />
+                                                <div className={cn(
+                                                    "absolute top-6 right-6 w-8 h-8 border-t-2 border-r-2 rounded-tr transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/20"
+                                                )} />
+                                                <div className={cn(
+                                                    "absolute bottom-28 left-6 w-8 h-8 border-b-2 border-l-2 rounded-bl transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/20"
+                                                )} />
+                                                <div className={cn(
+                                                    "absolute bottom-28 right-6 w-8 h-8 border-b-2 border-r-2 rounded-br transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/20"
+                                                )} />
 
-                                                {/* Guia Central */}
-                                                <div className="relative w-[85%] h-[50%] border-2 border-dashed border-primary/50 rounded-lg flex items-center justify-center">
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary/20 backdrop-blur-md px-3 py-1 rounded-full border border-primary/30">
-                                                        <span className="text-[8px] font-black text-primary uppercase tracking-widest whitespace-nowrap">Centralize a Etiqueta</span>
-                                                    </div>
-
-                                                    {/* Marcador de Centro */}
-                                                    <div className="w-4 h-4 border border-primary/40 rounded-full opacity-30" />
-                                                    <div className="h-[1px] w-6 bg-primary/40 absolute" />
-                                                    <div className="w-[1px] h-6 bg-primary/40 absolute" />
+                                                {/* Indicador de Pronto - Sutil */}
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20">
+                                                    <Camera className="h-12 w-12 text-white" />
                                                 </div>
-
-                                                {/* Cantilheiras de Foco Redesenhadas */}
-                                                <div className={cn(
-                                                    "absolute top-[25%] left-[7.5%] w-8 h-8 border-t-2 border-l-2 rounded-tl transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
-                                                )} />
-                                                <div className={cn(
-                                                    "absolute top-[25%] right-[7.5%] w-8 h-8 border-t-2 border-r-2 rounded-tr transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
-                                                )} />
-                                                <div className={cn(
-                                                    "absolute bottom-[25%] left-[7.5%] w-8 h-8 border-b-2 border-l-2 rounded-bl transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
-                                                )} />
-                                                <div className={cn(
-                                                    "absolute bottom-[25%] right-[7.5%] w-8 h-8 border-b-2 border-r-2 rounded-br transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
-                                                )} />
                                             </div>
                                         )}
 
