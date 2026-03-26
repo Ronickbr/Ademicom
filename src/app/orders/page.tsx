@@ -16,7 +16,6 @@ import {
     ShieldCheck,
     Ban,
     Check,
-    Barcode,
     Camera,
     Trash2
 } from "lucide-react";
@@ -25,9 +24,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
-import { useScan } from "@/hooks/useScan";
 import { Order, Client, Product } from "@/lib/types";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { logger } from "@/lib/logger";
 
 const statusStyles = {
@@ -61,7 +59,6 @@ export default function OrdersPage() {
     const [showMountingCamera, setShowMountingCamera] = useState(false);
 
     // Camera Scanning States
-    const { scanImage, ocrLoading } = useScan();
     const [showCamera, setShowCamera] = useState(false);
 
     useEffect(() => {
@@ -83,7 +80,8 @@ export default function OrdersPage() {
                 const config = {
                     fps: 10,
                     qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
+                    aspectRatio: 1.0,
+                    formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
                 };
 
                 // Try to get cameras first to ensure permissions
@@ -892,16 +890,38 @@ export default function OrdersPage() {
                                             </div>
                                         </div>
 
+                                        {/* Modal de Câmera Standalone para Novo Pedido */}
                                         {showMountingCamera && (
-                                            <div className="relative aspect-video rounded-xl overflow-hidden border border-border/20 animate-in fade-in zoom-in-95 duration-300">
-                                                <div id="mounting-reader" className="w-full"></div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowMountingCamera(false)}
-                                                    className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-background/60 text-foreground flex items-center justify-center backdrop-blur-xl border border-border/20 active:scale-90 transition-all"
-                                                >
-                                                    <X className="h-6 w-6" />
-                                                </button>
+                                            <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300">
+                                                <div className="w-full max-w-4xl relative">
+                                                    <div className="absolute -top-16 left-0 right-0 flex items-center justify-between px-4">
+                                                        <div className="flex flex-col">
+                                                            <h3 className="text-white text-xl font-black uppercase tracking-tighter italic">Scanner Ativo</h3>
+                                                            <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest">Aponte somente para o QR Code da etiqueta</p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowMountingCamera(false)}
+                                                            className="h-12 w-12 rounded-2xl bg-white/10 hover:bg-red-500/20 text-white hover:text-red-500 flex items-center justify-center transition-all backdrop-blur-xl border border-white/10 hover:border-red-500/20 active:scale-95"
+                                                        >
+                                                            <X className="h-6 w-6" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="bg-card/40 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative aspect-[4/3] sm:aspect-video flex items-center justify-center font-black">
+                                                        <div id="mounting-reader" className="w-full h-full object-cover"></div>
+
+                                                        {/* Scanning Overlay Effect */}
+                                                        <div className="absolute inset-0 pointer-events-none border-[2px] border-primary/20 rounded-[2.5rem]"></div>
+                                                        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-primary/30 shadow-[0_0_15px_rgba(34,197,94,0.5)] animate-infinite-scan z-10"></div>
+                                                    </div>
+
+                                                    <div className="mt-8 flex justify-center">
+                                                        <div className="bg-white/10 backdrop-blur-md px-8 py-3 rounded-full border border-white/10 shadow-xl">
+                                                            <p className="text-white/70 text-[9px] uppercase font-black tracking-[0.4em] italic text-center animate-pulse">Escaneando novo item...</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -1131,7 +1151,7 @@ export default function OrdersPage() {
                                                             </div>
 
                                                             <div className="mt-6 bg-background/60 backdrop-blur-md px-6 py-2 rounded-full border border-border/10 shadow-xl">
-                                                                <p className="text-foreground/70 text-[9px] uppercase font-black tracking-[0.3em] italic text-center">Aponte para o QR Code da etiqueta</p>
+                                                                <p className="text-foreground/70 text-[9px] uppercase font-black tracking-[0.3em] italic text-center">Aponte somente para o QR Code da etiqueta</p>
                                                             </div>
                                                         </div>
                                                     )}
