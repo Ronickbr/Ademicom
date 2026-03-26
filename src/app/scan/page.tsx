@@ -30,8 +30,9 @@ import { logger } from "@/lib/logger";
 // ─── Constantes de Câmera ──────────────────────────────────────────────────
 const CAMERA_CONSTRAINTS: MediaTrackConstraints = {
     facingMode: "environment",
-    width: { ideal: 1280, min: 640 },
-    height: { ideal: 720, min: 480 },
+    width: { ideal: 720, min: 480 },
+    height: { ideal: 1280, min: 640 },
+    aspectRatio: { ideal: 9 / 16 },
     frameRate: { ideal: 20, max: 24 },
     // Desativa estabilização digital para reduzir delay
     // @ts-expect-error – constraint experimental suportado em mobile
@@ -336,8 +337,8 @@ export default function ScanPage() {
         await new Promise(r => setTimeout(r, 450));
 
         const rawImage = webcamRef.current.getScreenshot({
-            width: 1280,
-            height: 720,
+            width: 720,
+            height: 1280,
         });
         if (!rawImage) return;
 
@@ -466,8 +467,8 @@ export default function ScanPage() {
                 <div className="grid lg:grid-cols-5 gap-8">
                     <div className="lg:col-span-3 space-y-6">
                         {/* Camera Frame */}
-                        <div className="glass-card p-2 border-border/20 bg-black shadow-2xl relative overflow-hidden group">
-                            <div className="relative aspect-square md:aspect-video rounded-xl overflow-hidden bg-card border border-border/10">
+                        <div className="glass-card p-2 border-border/20 bg-black shadow-2xl relative overflow-hidden group max-w-sm mx-auto">
+                            <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-card border border-border/10">
                                 {!cameraError ? (
                                     <>
                                         <Webcam
@@ -494,25 +495,41 @@ export default function ScanPage() {
                                             </div>
                                         )}
 
-                                        {/* ── Viewfinder corners ── */}
+                                        {/* ── Overlay de Centralização (Máscara) ── */}
                                         {cameraReady && (
-                                            <div className="absolute inset-0 pointer-events-none z-10">
-                                                {/* cantos do visor */}
+                                            <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+                                                {/* Áreas escurecidas ao redor */}
+                                                <div className="absolute top-0 w-full h-[25%] bg-black/40 border-b border-primary/20" />
+                                                <div className="absolute bottom-0 w-full h-[25%] bg-black/40 border-t border-primary/20" />
+
+                                                {/* Guia Central */}
+                                                <div className="relative w-[85%] h-[50%] border-2 border-dashed border-primary/50 rounded-lg flex items-center justify-center">
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary/20 backdrop-blur-md px-3 py-1 rounded-full border border-primary/30">
+                                                        <span className="text-[8px] font-black text-primary uppercase tracking-widest whitespace-nowrap">Centralize a Etiqueta</span>
+                                                    </div>
+
+                                                    {/* Marcador de Centro */}
+                                                    <div className="w-4 h-4 border border-primary/40 rounded-full opacity-30" />
+                                                    <div className="h-[1px] w-6 bg-primary/40 absolute" />
+                                                    <div className="w-[1px] h-6 bg-primary/40 absolute" />
+                                                </div>
+
+                                                {/* Cantilheiras de Foco Redesenhadas */}
                                                 <div className={cn(
-                                                    "absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 rounded-tl transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/30"
+                                                    "absolute top-[25%] left-[7.5%] w-8 h-8 border-t-2 border-l-2 rounded-tl transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
                                                 )} />
                                                 <div className={cn(
-                                                    "absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 rounded-tr transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/30"
+                                                    "absolute top-[25%] right-[7.5%] w-8 h-8 border-t-2 border-r-2 rounded-tr transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
                                                 )} />
                                                 <div className={cn(
-                                                    "absolute bottom-20 left-8 w-8 h-8 border-b-2 border-l-2 rounded-bl transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/30"
+                                                    "absolute bottom-[25%] left-[7.5%] w-8 h-8 border-b-2 border-l-2 rounded-bl transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
                                                 )} />
                                                 <div className={cn(
-                                                    "absolute bottom-20 right-8 w-8 h-8 border-b-2 border-r-2 rounded-br transition-colors duration-300",
-                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-white/30"
+                                                    "absolute bottom-[25%] right-[7.5%] w-8 h-8 border-b-2 border-r-2 rounded-br transition-colors duration-300",
+                                                    focusStatus === "locked" ? "border-emerald-400" : focusStatus === "focusing" ? "border-amber-400" : "border-primary/40"
                                                 )} />
                                             </div>
                                         )}
