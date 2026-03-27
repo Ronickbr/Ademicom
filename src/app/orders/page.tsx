@@ -375,6 +375,7 @@ export default function OrdersPage() {
                     clients (*),
                     order_items (
                         id,
+                        unit_price,
                         products (*)
                     )
                 `)
