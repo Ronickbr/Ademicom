@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { supabase } from "@/lib/supabase";
 import { useParams, useNavigate } from "react-router-dom";
@@ -39,6 +39,7 @@ export default function TechnicianChecklist() {
     const [dynamicCategories, setDynamicCategories] = useState<string[]>(["Funcional", "Estético", "Componentes", "Geral"]);
     const [newFieldCategory, setNewFieldCategory] = useState("Geral");
     const [isSavingField, setIsSavingField] = useState(false);
+    const [hasInitialExpanded, setHasInitialExpanded] = useState(false);
 
     // Group items by category
     const groupedItems = checklistItems.reduce((acc, item) => {
@@ -47,16 +48,19 @@ export default function TechnicianChecklist() {
         return acc;
     }, {} as Record<string, ChecklistItem[]>);
 
-    const categories = dynamicCategories.length > 0
-        ? dynamicCategories.filter(cat => groupedItems[cat])
-        : Object.keys(groupedItems).sort();
+    const categories = useMemo(() => {
+        return dynamicCategories.length > 0
+            ? dynamicCategories.filter(cat => groupedItems[cat])
+            : Object.keys(groupedItems).sort();
+    }, [dynamicCategories, groupedItems]);
 
     useEffect(() => {
-        // Expand first category by default
-        if (categories.length > 0 && expandedCategories.size === 0) {
+        // Expand first category by default only once
+        if (categories.length > 0 && !hasInitialExpanded) {
             setExpandedCategories(new Set([categories[0]]));
+            setHasInitialExpanded(true);
         }
-    }, [categories]);
+    }, [categories, hasInitialExpanded]);
 
     useEffect(() => {
         const fetchData = async () => {
