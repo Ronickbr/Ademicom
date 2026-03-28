@@ -50,9 +50,10 @@ Siga os passos abaixo para rodar o projeto localmente:
 
 ## 📈 Versionamento
 
-Este projeto utiliza o versionamento semântico. A versão atual é **v2.7.11**, representando uma evolução significativa na arquitetura e funcionalidades do sistema original.
+Este projeto utiliza o versionamento semântico. A versão atual é **v2.8.1**, representando uma evolução significativa na arquitetura e funcionalidades do sistema original.
 
-### 📝 Histórico de Versões (v2.7.x)
+### 📝 Histórico de Versões
+- **v2.8.1:** Adicionada validação para impedir a finalização de pedidos vazios sem produtos.
 - **v2.7.11:** Substituição dos botões do modal de acompanhamento do pedido por um único botão "Aguardar" para otimização do fluxo.
 - **v2.7.10:** Refatoração do fluxo de criação de Pedidos (criação simplificada com adição posterior de itens via scanner) e detalhamento aprimorado.
 - **v2.7.9:** Correção na exibição do Preço Unitário nos detalhes do pedido (campo ausente na consulta).

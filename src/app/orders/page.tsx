@@ -501,6 +501,10 @@ export default function OrdersPage() {
     };
 
     const handleFinalizeOrder = async (order: Order) => {
+        if (!order.order_items || order.order_items.length === 0) {
+            toast.error("Não é possível finalizar um pedido sem produtos.");
+            return;
+        }
 
         setIsSaving(true);
         try {
